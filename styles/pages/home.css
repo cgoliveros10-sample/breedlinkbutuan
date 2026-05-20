@@ -1,4 +1,4 @@
-    .bg-animation {
+.bg-animation {
       position: fixed;
       top: 0;
       left: 0;
@@ -363,6 +363,7 @@
     .page-loader.hidden {
       opacity: 0;
       visibility: hidden;
+      pointer-events: none;
     }
 
     .loader {
