@@ -71,7 +71,7 @@
     <!-- Profile Section -->
     <div class="profile-section">
       <div class="profile-img-container">
-        <img class="profile-img" id="profileImg" src="" alt="Profile" onerror="this.style.display='none'">
+        <img class="profile-img" id="profileImg" src="" alt="Profile" onerror="this.onerror=null;this.src=window.defaultAvatar?defaultAvatar(document.getElementById('profileName')?.textContent||'User'):'';">
         <div class="profile-img-overlay" onclick="openProfileModal()">
           <span class="edit-profile-img">📷</span>
         </div>
