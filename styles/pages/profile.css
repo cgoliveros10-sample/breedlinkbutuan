@@ -2377,3 +2377,11 @@ body {
 /* Ensure modal-content h3 has right-padding for close btn */
 .modal-content > h3:first-of-type,
 .modal-content > h3 { padding-right: 44px; }
+
+/* ── Crop modal stacking context escape ──────────────────── */
+/* When crop modal is open, backdrop-filter is neutralised via JS.
+   This ensures the fixed cropModal can never be trapped behind a
+   CSS stacking context created by backdrop-filter on .modal */
+#cropModal {
+  isolation: isolate;
+}
