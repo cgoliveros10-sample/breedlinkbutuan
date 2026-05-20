@@ -1106,3 +1106,5 @@ window.renderBreedersTab = renderBreedersTab;
 window.closeMatch = closeMatch;
 window.messageMatch = messageMatch;
 window.rateMatchBreeder = rateMatchBreeder;
+window.messageOwner = messageOwner;
+window.messageMatchBreeder = messageMatchBreeder;
