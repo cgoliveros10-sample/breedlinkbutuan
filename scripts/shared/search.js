@@ -156,31 +156,33 @@
     if (!window.supabase || !q || q.length < 2) return [];
     if (typeof User === 'undefined' || !User.isAuthenticated()) return [];
     try {
-      // Pass the ilike pattern directly — Supabase JS client handles URL encoding.
-      var pattern = '%' + q + '%';
+      // The custom db.js buildUrl appends the or() filter raw into the URL as
+      // &or=(name.ilike.%q%,...) — the bare % signs look like malformed
+      // percent-encoding and cause CORS preflight failures.
+      // Fix: run two separate ilike queries (name, username) and merge client-side.
+      // This avoids the or() URL encoding problem entirely.
+      var cols = 'id, name, username, profile_picture, location, tags, is_deleted, deletion_requested_at';
 
-      var { data, error } = await window.supabase
-        .from('profiles')
-        .select('id, name, username, profile_picture, location, tags, is_deleted, deletion_requested_at')
-        .or('name.ilike.' + pattern + ',username.ilike.' + pattern)
-        .limit(8);
+      // Use PostgREST filter syntax via .filter() which encodes values safely
+      var [nameRes, userRes] = await Promise.all([
+        window.supabase.from('profiles').select(cols)
+          .filter('name', 'ilike', '%' + q + '%').limit(8),
+        window.supabase.from('profiles').select(cols)
+          .filter('username', 'ilike', '%' + q + '%').limit(8)
+      ]);
 
-      if (error) {
-        // Fallback: OR filter failed (e.g. RLS or column issue) — try name-only ilike
-        console.warn('[BL Search] OR query failed, falling back to name-only:', error.message);
-        var res2 = await window.supabase
-          .from('profiles')
-          .select('id, name, username, profile_picture, location, tags, is_deleted, deletion_requested_at')
-          .ilike('name', pattern)
-          .limit(8);
-        if (res2.error) { console.warn('[BL Search] fallback query failed:', res2.error.message); return []; }
-        data = res2.data;
-      }
-
-      // Filter out deleted/pending-deletion profiles client-side
-      return (data || []).filter(function (p) {
-        return !p.is_deleted && !p.deletion_requested_at;
+      // Merge, deduplicate by id, filter deleted
+      var seen = new Set();
+      var merged = [];
+      [(nameRes.data || []), (userRes.data || [])].forEach(function(arr) {
+        arr.forEach(function(p) {
+          if (!seen.has(p.id) && !p.is_deleted && !p.deletion_requested_at) {
+            seen.add(p.id);
+            merged.push(p);
+          }
+        });
       });
+      return merged.slice(0, 8);
     } catch (e) {
       console.warn('[BL Search] query error:', e);
       return [];
