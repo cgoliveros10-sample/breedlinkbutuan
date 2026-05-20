@@ -344,12 +344,15 @@ async function loadAnimals() {
     }
     if (!currentUserId) return;
     try {
+        console.log('[loadAnimals] Querying for user_id:', currentUserId);
         const { data, error } = await window.supabase
             .from('animals')
             .select('id,name,breed,species,image_url,status,description,age,gender,color,documents,user_id,created_at,updated_at')
             .eq('user_id', currentUserId)
             .order('created_at', { ascending: false });
         
+        console.log('[loadAnimals] Result - data:', data, '| error:', error);
+
         if (error) throw error;
         
         animals = data || [];
