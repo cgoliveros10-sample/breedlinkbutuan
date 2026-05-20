@@ -687,13 +687,13 @@ function _bpDraw() {
       </div>`).join('')}
     </div>
     <!-- RATING STRIP (clickable → goes to Reviews tab) -->
-    <div data-tab="reviews" style="display:flex;align-items:center;gap:8px;padding:9px 13px;background:#fffbeb;border-radius:10px;border:1px solid #fde68a;margin-bottom:12px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#fffbeb'">
-      <div style="display:flex;gap:2px;">${starsHTML}</div>
+    <div data-tab="reviews" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;padding:9px 13px;background:#fffbeb;border-radius:10px;border:1px solid #fde68a;margin-bottom:12px;cursor:pointer;transition:background .15s;min-width:0;box-sizing:border-box;width:100%;overflow:hidden;" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#fffbeb'">
+      <div style="display:flex;gap:2px;flex-shrink:0;">${starsHTML}</div>
       ${avgR
-        ? `<span style="font-size:14px;font-weight:800;color:#92400e;">${avgR}</span>
-           <span style="font-size:11px;color:#b45309;">(${_bp.ratings.length} review${_bp.ratings.length!==1?'s':''})</span>
-           <span style="font-size:10px;color:#b45309;margin-left:auto;">tap to view →</span>`
-        : `<span style="font-size:11px;color:#b45309;font-style:italic;">No reviews yet${!isOwnProfile?' — be the first!':''}</span>`}
+        ? `<span style="font-size:14px;font-weight:800;color:#92400e;flex-shrink:0;">${avgR}</span>
+           <span style="font-size:11px;color:#b45309;white-space:nowrap;">(${_bp.ratings.length} review${_bp.ratings.length!==1?'s':''})</span>
+           <span style="font-size:10px;color:#b45309;margin-left:auto;white-space:nowrap;">tap to view →</span>`
+        : `<span style="font-size:11px;color:#b45309;font-style:italic;white-space:nowrap;">No reviews yet${!isOwnProfile?' — be the first!':''}</span>`}
     </div>
 
     <!-- BIO -->
@@ -775,12 +775,12 @@ function _bpUpdateRatingStrip() {
         `<span style="color:${i <= Math.round(parseFloat(avgR||0))?'#f59e0b':'#d1d5db'};font-size:16px;">&#9733;</span>`
     ).join('');
     strip.innerHTML = `
-        <div style="display:flex;gap:2px;">${starsHTML}</div>
+        <div style="display:flex;gap:2px;flex-shrink:0;">${starsHTML}</div>
         ${avgR
-            ? `<span style="font-size:14px;font-weight:800;color:#92400e;">${avgR}</span>
-               <span style="font-size:11px;color:#b45309;">(${_bp.ratings.length} review${_bp.ratings.length!==1?'s':''})</span>
-               <span style="font-size:10px;color:#b45309;margin-left:auto;">tap to view →</span>`
-            : `<span style="font-size:11px;color:#b45309;font-style:italic;">No reviews yet</span>`}`;
+            ? `<span style="font-size:14px;font-weight:800;color:#92400e;flex-shrink:0;">${avgR}</span>
+               <span style="font-size:11px;color:#b45309;white-space:nowrap;">(${_bp.ratings.length} review${_bp.ratings.length!==1?'s':''})</span>
+               <span style="font-size:10px;color:#b45309;margin-left:auto;white-space:nowrap;">tap to view →</span>`
+            : `<span style="font-size:11px;color:#b45309;font-style:italic;white-space:nowrap;">No reviews yet</span>`}`;
     // Also update the tab label
     const reviewsTab = document.querySelector('[data-tab="reviews"]');
     if (reviewsTab && reviewsTab !== strip) {
