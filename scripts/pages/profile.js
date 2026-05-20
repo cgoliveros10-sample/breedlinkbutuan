@@ -832,20 +832,30 @@ async function sharePost(postId) {
     if (typeof openBreederProfile === 'function') {
         try {
             await openBreederProfile(ownerId);
-            // Switch to posts tab using internal _bp API, then scroll to post
+            // Switch to posts tab if needed, then scroll to the specific post
             setTimeout(() => {
-                // Use the posts tab button if available
                 const postsTabBtn = document.querySelector('button[data-tab="posts"]');
                 if (postsTabBtn) postsTabBtn.click();
 
-                // After tab renders, find and scroll to the specific post
+                // After tab renders, scroll the panel's scroll container to the post
                 setTimeout(() => {
                     const postEl = document.querySelector(`[data-post="${postId}"]`);
                     if (postEl) {
-                        postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Find the scrollable container (parent of ownerProfileBody)
+                        const body = document.getElementById('ownerProfileBody');
+                        const scrollContainer = body ? body.parentElement : null;
+                        if (scrollContainer) {
+                            const containerTop = scrollContainer.getBoundingClientRect().top;
+                            const postTop = postEl.getBoundingClientRect().top;
+                            const offset = postTop - containerTop + scrollContainer.scrollTop - 60;
+                            scrollContainer.scrollTo({ top: offset, behavior: 'smooth' });
+                        } else {
+                            postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        postEl.style.transition = 'outline 0.2s, box-shadow 0.2s';
                         postEl.style.outline = '2.5px solid var(--green-primary)';
-                        postEl.style.transition = 'outline 0.3s';
-                        setTimeout(() => { postEl.style.outline = ''; }, 1800);
+                        postEl.style.boxShadow = '0 0 0 4px rgba(76,175,80,0.18)';
+                        setTimeout(() => { postEl.style.outline = ''; postEl.style.boxShadow = ''; }, 1800);
                     }
                 }, 350);
             }, 450);
