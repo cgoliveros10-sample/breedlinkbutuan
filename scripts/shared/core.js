@@ -473,6 +473,7 @@ function escapeHtml(str) {
 window.escapeHtml = escapeHtml;
 
 function checkAuthAndUpdateNav() {
+  if (typeof User === 'undefined') return; // auth.js not loaded on this page
   const isLoggedIn = User.isAuthenticated();
   const user = User.getUser();
 
@@ -779,4 +780,3 @@ window.BreedLink = {
     if (hamburger) hamburger.style.display = '';
   });
 })();
-
