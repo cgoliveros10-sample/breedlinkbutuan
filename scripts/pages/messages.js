@@ -278,12 +278,15 @@ const MessagesApp = {
       const uid = await this.getCurrentUserId();
       if (!uid) return;
       const since = this._lastPollTs[contactId];
-      const { data } = await window.supabase
+      // Only fetch messages newer than the last seen timestamp (server-side filter)
+      let query = window.supabase
         .from('messages')
         .select('id, sender_id, receiver_id, text, image_url, is_read, created_at')
         .eq('sender_id', contactId)
         .eq('receiver_id', uid)
         .order('created_at', { ascending: true });
+      if (since) query = query.gt('created_at', since);
+      const { data } = await query;
       if (!data || data.length === 0) return;
       // Use the later of: last-poll timestamp OR soft-delete timestamp, so
       // messages sent before the user deleted the conversation are never shown.
@@ -411,7 +414,7 @@ function renderSidebar() {
     const preview = last ? (last.type === 'image' ? '📷 Image' : escHtml((last.text || '').slice(0, 42))) : 'No messages yet';
     const time = last ? formatTime(last.ts) : '';
     return '<div class="conversation-item ' + (isActive ? 'active' : '') + ' ' + (unread > 0 ? 'unread' : '') + '" onclick="openConversation(\'' + c.id + '\')" data-id="' + c.id + '">' +
-      '<div class="conv-avatar">' + (c.avatar ? '<img src="' + escHtml(c.avatar) + '" alt="' + escHtml(c.name) + '" onerror="this.outerHTML='<div class=conv-avatar-placeholder>'+getInitials(c.name)+'</div>'">' : '<div class="conv-avatar-placeholder">' + getInitials(c.name) + '</div>') + (c.online ? '<span class="conv-online-dot"></span>' : '') + '</div>' +
+      '<div class="conv-avatar">' + (c.avatar ? '<img src="' + escHtml(c.avatar) + '" alt="' + escHtml(c.name) + '" data-initials="' + escHtml(getInitials(c.name)) + '" onerror="this.style.display=\'none\';var p=document.createElement(\'div\');p.className=\'conv-avatar-placeholder\';p.textContent=this.dataset.initials;this.parentNode.insertBefore(p,this);">' : '<div class="conv-avatar-placeholder">' + getInitials(c.name) + '</div>') + (c.online ? '<span class="conv-online-dot"></span>' : '') + '</div>' +
       '<div class="conv-body"><div class="conv-top"><span class="conv-name">' + escHtml(c.name) + '</span><span class="conv-time">' + time + '</span></div>' +
       '<div class="conv-bottom"><span class="conv-preview">' + preview + '</span>' + (unread > 0 ? '<span class="conv-unread-badge">' + unread + '</span>' : (c.isMatch ? '<span class="conv-match-badge">💚 Match</span>' : '')) + '</div></div></div>';
   }).join('');
@@ -442,7 +445,7 @@ function renderMessages(userId) {
     const cInitials = getInitials(cName);
     const avatarHtml = !isSent ? (
       cAvatar
-        ? '<img class="msg-avatar' + hideCls + '" src="' + cAvatar + '" alt="' + escHtml(cName) + '" onerror="this.outerHTML='<div class=\"msg-avatar' + hideCls + ' avatar-initials\">' + cInitials + '</div>'">'
+        ? '<img class="msg-avatar' + hideCls + '" src="' + cAvatar + '" alt="' + escHtml(cName) + '" data-initials="' + escHtml(cInitials) + '" onerror="this.style.display=\'none\';var p=document.createElement(\'div\');p.className=\'msg-avatar' + hideCls + ' avatar-initials\';p.textContent=this.dataset.initials;this.parentNode.insertBefore(p,this);">'
         : '<div class="msg-avatar' + hideCls + ' avatar-initials">' + cInitials + '</div>'
     ) : '';
     const bubbleContent = msg.type === 'image'
@@ -673,7 +676,7 @@ function renderNewChatList(contacts) {
   if (!contacts.length) { list.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;font-size:14px;">No contacts found</p>'; return; }
   list.innerHTML = contacts.map(c =>
     '<div class="new-chat-user" onclick="startChat(\'' + c.id + '\')">' +
-    '<div class="nc-avatar">' + (c.avatar ? '<img src="' + escHtml(c.avatar) + '" alt="' + escHtml(c.name) + '" onerror="this.outerHTML=\'<div class=\\\"nc-avatar-initials\\\">\'+getInitials(\'' + escHtml(c.name) + '\')+\'</div>\'">' : '<div class="nc-avatar-initials">' + getInitials(c.name) + '</div>') + '</div>' +
+    '<div class="nc-avatar">' + (c.avatar ? '<img src="' + escHtml(c.avatar) + '" alt="' + escHtml(c.name) + '" data-initials="' + escHtml(getInitials(c.name)) + '" onerror="this.style.display=\'none\';var p=document.createElement(\'div\');p.className=\'nc-avatar-initials\';p.textContent=this.dataset.initials;this.parentNode.insertBefore(p,this);">' : '<div class="nc-avatar-initials">' + getInitials(c.name) + '</div>') + '</div>' +
     '<div class="nc-info"><h4>' + escHtml(c.name) + '</h4><span>' + escHtml(c.role) + '</span></div>' +
     (c.isMatch ? '<span class="nc-match-badge">💚 Match</span>' : '') + '</div>'
   ).join('');
@@ -708,14 +711,22 @@ function updateInfoPanel(contact) {
 function viewProfile() {
   if (!MessagesApp.activeId) return;
   const userId = MessagesApp.activeId;
-  // Close messages modal first, then open the breeder profile panel
+  const isMessagesPage = window.location.pathname.split('/').pop() === 'messages.html';
+
+  if (isMessagesPage) {
+    // On messages.html, navigate directly — no modal to close.
+    MessagesApp.stopPolling();
+    window.location.href = 'profile.html?user=' + userId;
+    return;
+  }
+
+  // On other pages: try the inline breeder profile panel first,
+  // falling back to navigation if it's not available.
   closeMessagesModal();
-  // Give the modal time to close before opening the profile panel
   setTimeout(() => {
     if (typeof openBreederProfile === 'function') {
       openBreederProfile(userId);
     } else {
-      // Fallback: navigate to profile page with user param
       const inSubfolder = window.location.pathname.includes('/pages/');
       window.location.href = (inSubfolder ? '' : 'pages/') + 'profile.html?user=' + userId;
     }
@@ -804,10 +815,13 @@ async function openMessagesModal(chatDataArg) {
     await MessagesApp.loadMatchesFromSupabase();
     await MessagesApp.preloadLatestMessages();
   } else {
-    // Re-load matches in case new ones appeared, but do NOT re-run
-    // preloadLatestMessages — that would restore unread badges for
-    // conversations the user already read this session.
+    // Re-load matches in case new ones appeared.
     await MessagesApp.loadMatchesFromSupabase();
+    // Also refresh unread counts for any messages that arrived while the
+    // modal was closed (polling stops on close). preloadLatestMessages skips
+    // contacts whose unreadMap entry is already explicitly 0 (read this
+    // session), so previously-read conversations stay clean.
+    await MessagesApp.preloadLatestMessages();
   }
   renderSidebar();
   renderEmojiGrid();
@@ -825,6 +839,16 @@ async function openMessagesModal(chatDataArg) {
 function closeMessagesModal() {
   const overlay = document.getElementById('messagesModalOverlay');
   if (!overlay) return;
+
+  // On messages.html the modal IS the page — closing it would leave a blank
+  // screen. Redirect to the home page instead.
+  const isMessagesPage = window.location.pathname.split('/').pop() === 'messages.html';
+  if (isMessagesPage) {
+    MessagesApp.stopPolling();
+    window.location.href = '../index.html';
+    return;
+  }
+
   overlay.classList.remove('active');
   overlay.style.display = 'none';
   document.body.classList.remove('messages-open');
