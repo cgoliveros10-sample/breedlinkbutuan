@@ -340,12 +340,15 @@
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;margin-bottom:12px;">
             <p style="font-size:12px;color:#166534;font-weight:600;margin:0;">✅ OTP Verified — set your new password below</p>
           </div>
+          <form onsubmit="settingsSavePassword(); return false;" autocomplete="on">
+          <input type="text" name="username" autocomplete="username" style="display:none;" aria-hidden="true">
           <label class="sp-label">New Password</label>
           <input type="password" class="sp-input" id="sp-new-pw" placeholder="Min 8 characters" autocomplete="new-password">
           <label class="sp-label">Confirm New Password</label>
           <input type="password" class="sp-input" id="sp-confirm-pw" placeholder="Repeat new password" autocomplete="new-password">
           <button class="sp-btn sp-btn-primary" id="sp-pw-btn" onclick="settingsSavePassword()">Update Password</button>
           <div class="sp-status" id="sp-pw-status"></div>
+          </form>
         </div>
       </div>
 
@@ -376,7 +379,8 @@
             recover it by logging back in. After 7 days, your data will be permanently removed.
           </div>
           <label class="sp-label">Confirm with your password</label>
-          <input type="password" class="sp-input" id="sp-delete-pw" placeholder="Enter your password">
+          <form onsubmit="return false;" autocomplete="on"><input type="text" name="username" autocomplete="username" style="display:none;" aria-hidden="true">
+          <input type="password" class="sp-input" id="sp-delete-pw" placeholder="Enter your password" autocomplete="current-password"></form>
           <div id="sp-delete-confirm-area" style="display:none;margin-bottom:10px;">
             <p style="font-size:12px;color:#dc2626;font-weight:600;margin-bottom:8px;">
               ⚠️ Are you absolutely sure? Type <strong>DELETE</strong> below to confirm.
