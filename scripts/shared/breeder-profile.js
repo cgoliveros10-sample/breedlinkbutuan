@@ -436,6 +436,41 @@ async function submitRating() {
 // ═══════════════════════════════════════════════════════════════════════════
 // OWNER PROFILE PANEL  –  fully self-contained, event-delegation based
 // ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Scroll the breeder-profile panel to a specific post and flash it.
+ * Works by finding the scrollable container (parent of ownerProfileBody)
+ * and scrolling it so the [data-post="<pid>"] element is in view.
+ */
+function _bpScrollToPost(pid) {
+    const postEl = document.querySelector(`[data-post="${pid}"]`);
+    if (!postEl) return false;
+
+    // The scroll container is the overflow-y:auto div wrapping ownerProfileBody
+    const body = document.getElementById('ownerProfileBody');
+    const scrollContainer = body ? body.parentElement : null;
+
+    if (scrollContainer) {
+        // Calculate offset relative to scroll container
+        const containerTop = scrollContainer.getBoundingClientRect().top;
+        const postTop = postEl.getBoundingClientRect().top;
+        const offset = postTop - containerTop + scrollContainer.scrollTop - 60; // 60px padding
+        scrollContainer.scrollTo({ top: offset, behavior: 'smooth' });
+    } else {
+        postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Highlight flash
+    postEl.style.transition = 'outline 0.2s, box-shadow 0.2s';
+    postEl.style.outline = '2.5px solid #4CAF50';
+    postEl.style.boxShadow = '0 0 0 4px rgba(76,175,80,0.18)';
+    setTimeout(() => {
+        postEl.style.outline = '';
+        postEl.style.boxShadow = '';
+    }, 1800);
+    return true;
+}
+
 let _bp = {
     userId: null, profile: null, posts: [], animals: [],
     ratings: [], likedIds: new Set(), savedIds: new Set(), tab: 'posts', meId: null, meName: null, meAvatar: null,
@@ -1259,17 +1294,21 @@ function _bpClick(e) {
             if (cntEl) cntEl.textContent = newShares;
         }
 
+        // Scroll to the post inside the panel and highlight it
+        _bpScrollToPost(pid);
+
+        // Share or copy the shareable link
         if (navigator.share) {
             navigator.share({
                 title: 'BreedLink Post',
                 text: post?.text ? post.text.slice(0, 100) : 'Check out this post on BreedLink',
                 url: shareUrl
             }).catch(() => {
-                navigator.clipboard.writeText(shareUrl).then(() => showToast('Post link copied! 🔗'));
+                navigator.clipboard.writeText(shareUrl).then(() => showToast('Scrolled to post \u2022 Link copied \uD83D\uDD17'));
             });
         } else {
             navigator.clipboard.writeText(shareUrl).then(() => {
-                showToast('Post link copied! 🔗');
+                showToast('Scrolled to post \u2022 Link copied \uD83D\uDD17');
             }).catch(() => showToast('Post link: ' + shareUrl));
         }
         return;
@@ -2101,17 +2140,22 @@ window.addEventListener('breedlink:avatarChanged', function (e) {
             if (error || !post) { console.warn('Post deep-link: post not found', postId); return; }
             const userId = post.user_id;
             if (!userId) return;
-            // Open breeder profile, then once loaded open the post detail
+            // Open breeder profile, then scroll to post and open its detail
             openBreederProfile(userId).then(() => {
                 // Clean up URL only after successful open so refresh doesn't re-trigger
                 const cleanUrl = new URL(window.location.href);
                 cleanUrl.searchParams.delete('post');
                 window.history.replaceState({}, '', cleanUrl.toString());
-                // Small delay to let the panel render
+                // Small delay to let the panel render, then scroll + open detail
                 setTimeout(() => {
                     const p = _bp.posts.find(p => String(p.id) === String(postId));
-                    if (p) _bpOpenPostDetail(p);
-                }, 400);
+                    if (p) {
+                        // First scroll the panel to the post so the user sees where it is
+                        _bpScrollToPost(String(p.id));
+                        // Then open the post detail lightbox
+                        setTimeout(() => _bpOpenPostDetail(p), 300);
+                    }
+                }, 450);
             }).catch(err => console.warn('Post deep-link: openBreederProfile failed', err));
         });
     }
