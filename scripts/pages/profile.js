@@ -503,14 +503,14 @@ function renderPosts() {
                 <span style="font-size:11px;color:var(--text-muted);cursor:pointer;" onclick="openPostDetail(${post.id})">View all comments</span>
             </div>
             <div class="post-actions">
-                <button class="${post.liked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
+                <button class="action-like ${post.liked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
                     <span>${post.liked ? '❤️' : '🤍'}</span> ${post.liked ? 'Liked' : 'Like'}
                 </button>
-                <button onclick="openPostDetail(${post.id})">💬 Comment</button>
-                <button class="${post.saved ? 'saved' : ''}" onclick="toggleSave(${post.id})">
+                <button class="action-comment" onclick="openPostDetail(${post.id})">💬 Comment</button>
+                <button class="action-save ${post.saved ? 'saved' : ''}" onclick="toggleSave(${post.id})">
                     <span>${post.saved ? '🔖' : '📑'}</span> ${post.saved ? 'Saved' : 'Save'}
                 </button>
-                <button onclick="sharePost(${post.id})">🔗 Share</button>
+                <button class="action-share" onclick="sharePost(${post.id})">🔗 Share</button>
             </div>
         </div>`;
     }).join('');
@@ -808,11 +808,15 @@ async function sharePost(postId) {
     const postLink = window.location.origin + '/pages/profile.html?post=' + postId;
     const post = posts.find(p => String(p.id) === String(postId));
 
-    // Increment share counter in DB (fire-and-forget)
+    // Increment share counter in DB (fire-and-forget via direct update — no RPC needed)
     if (post) {
         const newShares = (post.shares || 0) + 1;
         post.shares = newShares;
-        updatePostPublic(postId, { shares: newShares }).catch(err => console.warn('sharePost counter error:', err));
+        window.supabase
+            .from('posts')
+            .update({ shares: newShares })
+            .eq('id', postId)
+            .then(({ error }) => { if (error) console.warn('sharePost counter error:', error.message); });
         const card = document.querySelector(`.post-card[data-post-id="${postId}"] .post-meta span`);
         if (card) card.textContent = `${post.likes} likes • ${(post.comments||[]).length} comments • ${newShares} share${newShares !== 1 ? 's' : ''}`;
     }
