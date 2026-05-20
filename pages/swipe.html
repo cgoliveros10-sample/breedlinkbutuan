@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fhlpalxmrppxgprippmj.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://fhlpalxmrppxgprippmj.supabase.co wss://fhlpalxmrppxgprippmj.supabase.co https://images.unsplash.com; frame-ancestors 'none';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>BreedMatch - Swipe to Find Your Perfect Match | BreedLink</title>
+  <meta name="description" content="Browse and connect with verified animal breeders near you. Swipe to find your perfect breeding match on BreedLink.">
+  <meta property="og:title" content="BreedLink">
+  <meta property="og:description" content="Browse and connect with verified animal breeders near you. Swipe to find your perfect breeding match on BreedLink.">
+  <link rel="stylesheet" href="../styles/shared/base.css">
+  <link rel="stylesheet" href="../styles/pages/swipe.css"></head>
+<body>
+  <header class="navigation" id="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo" onclick="window.location.href='../index.html'">
+          <img src="../assets/logo.png" alt="BreedLink">
+        </div>
+      </div>
+      <div class="nav-center">
+        <nav class="menu" id="navMenu">
+          <a href="../index.html" id="nav-home">Home</a>
+          <a href="about.html" id="nav-about">About</a>
+          <a href="swipe.html" id="nav-breeders">Breeders</a>
+        </nav>
+        <div class="mobile-nav-auth" id="mobileNavAuth" style="display:none;">
+          <a href="login.html" class="mobile-signin" id="mobileSignin">Sign In</a>
+          <a href="signup.html" class="mobile-signup" id="mobileSignup">Sign Up</a>
+        </div>
+      </div>
+      <div class="nav-right" id="navRight">
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="Toggle menu" style="display:none;">
+          <span></span><span></span><span></span>
+        </button>
+        <button class="message-btn" id="messageBtn" onclick="openMessenger()" title="Messages" style="display: none;">
+          💬
+          <span class="message-badge" id="messageBadge" style="display: none;">0</span>
+        </button>
+        <div class="profile-menu-container" id="profileMenuContainer" style="display: none;">
+          <button class="profile-btn" id="profileBtn" onclick="toggleProfileDropdown()">
+            <span class="default-avatar">👤</span>
+          </button>
+          <div class="profile-dropdown" id="profileDropdown">
+            <a href="profile.html" class="profile-dropdown-item"><span>👁️</span> View Profile</a>
+            <a href="profile.html?edit=true" class="profile-dropdown-item" onclick="sessionStorage.setItem('enableEdit', 'true');"><span>✏️</span> Customize Profile</a>
+            <button class="profile-dropdown-item" onclick="openSettingsPanel(); toggleProfileDropdown();"><span>⚙️</span> Account Settings</button>
+            <div class="profile-dropdown-divider"></div>
+            <button class="profile-dropdown-item logout" onclick="handleLogout()"><span>🚪</span> Logout</button>
+          </div>
+        </div>
+        <div class="guest-options" id="guestOptions">
+          <a href="login.html" class="guest-btn signin">Sign In</a>
+          <a href="signup.html" class="guest-btn signup">Sign Up</a>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="swipe-layout">
+    <div class="swipe-left">
+      <div class="page-header">
+        <h1>🐾 Find Your Perfect Match</h1>
+        <p>Swipe to discover verified breeders</p>
+      </div>
+      <div class="filter-section">
+        <button class="filter-toggle" id="filterToggle" onclick="toggleFilters()">
+          <span>🔍</span> Filter Matches
+        </button>
+        <div class="filter-panel" id="filterPanel">
+          <div class="filter-group">
+            <label>Category</label>
+            <select id="categorySelect" onchange="updateBreeds()">
+              <option value="">All Categories</option>
+              <option value="Pet">🐕 Pets</option>
+              <option value="Livestock">🐄 Livestock</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Animal Type</label>
+            <select id="breedSelect" onchange="applyFilters()">
+              <option value="">All Types</option>
+              <optgroup label="🐕 Pets" id="petTypes">
+                <option value="Dog">🐕 Dog</option>
+                <option value="Cat">🐈 Cat</option>
+                <option value="Bird">🐦 Bird</option>
+                <option value="Rabbit">🐇 Rabbit</option>
+                <option value="Mouse">🐭 Mouse</option>
+                <option value="Hamster">🐹 Hamster</option>
+                <option value="Fish">🐠 Fish</option>
+                <option value="Turtle">🐢 Turtle</option>
+              </optgroup>
+              <optgroup label="🐄 Livestock" id="livestockTypes">
+                <option value="Pig">🐖 Pig</option>
+                <option value="Cow">🐄 Cow</option>
+                <option value="Goat">🐐 Goat</option>
+                <option value="Horse">🐎 Horse</option>
+                <option value="Chicken">🐓 Chicken</option>
+                <option value="Duck">🦆 Duck</option>
+                <option value="Sheep">🐑 Sheep</option>
+                <option value="Carabao">🐃 Carabao</option>
+              </optgroup>
+              <option value="Other">🐾 Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="swipe-container">
+        <div class="card-stack" id="cardStack"></div>
+        <div class="swipe-indicator nope" id="indicatorNope">NOPE</div>
+        <div class="swipe-indicator like" id="indicatorLike">LIKE</div>
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">🎉</div>
+          <h3>All Caught Up!</h3>
+          <p>No more breeders to show. Try adjusting your filters!</p>
+          <button class="empty-btn primary" onclick="resetFilters()">Reset Filters</button>
+          <button class="empty-btn secondary" onclick="showPassed()">Show Passed</button>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button class="action-btn nope" onclick="swipe('left')" title="Pass">✕</button>
+        <button class="action-btn like" onclick="swipe('right')" title="Like">❤️</button>
+      </div>
+      <div class="instructions">
+        <p>👆 Swipe right to like • Swipe left to pass • Click buttons to decide</p>
+      </div>
+    </div>
+    <div class="swipe-right">
+      <div class="pet-details-panel" id="petDetailsPanel">
+        <button class="close-details" onclick="closePetDetails()">×</button>
+        <div class="pet-details-content" id="petDetailsContent">
+          <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            <div style="font-size: 48px; margin-bottom: 16px;">🐾</div>
+            <p>Select a breeder to see details here</p>
+          </div>
+        </div>
+      </div>
+      <div class="matches-section">
+        <div class="matches-header">
+          <h3><span>💚</span> Breeders</h3>
+          <span class="match-count" id="matchCount">0</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button id="tabLiked" onclick="renderBreedersTab('liked')"
+            style="flex:1;padding:8px 0;border:none;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;background:var(--green-primary);color:white;transition:all 0.2s;">
+            💚 Liked
+          </button>
+          <button id="tabPassed" onclick="renderBreedersTab('passed')"
+            style="flex:1;padding:8px 0;border:none;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;background:var(--bg-secondary);color:var(--text-secondary);transition:all 0.2s;">
+            ✕ Passed
+          </button>
+        </div>
+        <div class="matches-list" id="matchesList">
+          <div class="empty-matches">Start swiping to find matches!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="document-modal" id="documentModal">
+    <div class="document-content">
+      <button class="modal-close" onclick="closeDocumentModal()">×</button>
+      <h3>📋 Health Records & Documents</h3>
+      <div class="documents-grid" id="documentsGrid"></div>
+    </div>
+  </div>
+  <div class="match-overlay" id="matchOverlay">
+    <div class="match-modal">
+      <h2>It's a Match! 💚</h2>
+      <div class="match-images">
+        <img src="../assets/animals/doge.png" alt="You">
+        <img id="matchImage" src="" alt="Match">
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;">You and <strong id="matchName"></strong> have liked each other!</p>
+      <button class="empty-btn primary" onclick="messageMatch()">Send Message</button>
+      <button class="empty-btn secondary" onclick="rateMatchBreeder()">⭐ Rate Breeder</button>
+      <button class="empty-btn secondary" onclick="closeMatch()" style="opacity:0.6;">Keep Swiping</button>
+    </div>
+  </div>
+
+  <!-- Rate modal injected dynamically by JS -->
+
+  <!-- Owner Profile Panel -->
+  <div id="ownerProfileModal"
+       style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:env(safe-area-inset-top,12px) 10px env(safe-area-inset-bottom,12px);box-sizing:border-box;">
+    <div onclick="closeBreederProfile()" style="position:absolute;inset:0;z-index:0;"></div>
+    <!-- Close button — now rendered inside the card by _bpDraw(); kept hidden for legacy JS refs -->
+    <button onclick="closeBreederProfile()"
+      id="breederProfileCloseBtn"
+      style="display:none;position:absolute;top:-9999px;pointer-events:none;visibility:hidden;">×</button>
+    <!-- Centered scrollable panel -->
+    <div style="position:relative;z-index:1;width:100%;max-width:620px;max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);border-radius:22px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+      <div id="ownerProfileBody" style="min-width:0;border-radius:22px;overflow:hidden;"></div>
+    </div>
+  </div>
+<script src="../scripts/shared/db.js"></script>
+
+<script src="../scripts/shared/core.js"></script>
+<script src="../scripts/shared/search.js"></script>
+<script src="../scripts/shared/auth.js"></script>
+<script src="../scripts/shared/upload.js"></script>
+<script src="../scripts/pages/swipe.js"></script>
+<script src="../scripts/shared/breeder-profile.js"></script>
+<script src="../scripts/shared/msgs-loader.js"></script>
+
+<script src="../scripts/shared/settings.js"></script>
+</body>
+</html>

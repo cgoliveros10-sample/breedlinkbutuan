@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fhlpalxmrppxgprippmj.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://fhlpalxmrppxgprippmj.supabase.co wss://fhlpalxmrppxgprippmj.supabase.co https://images.unsplash.com; frame-ancestors 'none';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>Privacy Policy – BreedLink</title>
+  <link rel="stylesheet" href="../styles/shared/base.css">  <link rel="stylesheet" href="../styles/pages/terms.css">
+  <style>
+    /* Override: privacy page uses terms.css design with better section numbers */
+    /* ── Page base ── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      color: var(--text-primary);
+      font-family: 'SF Pro Display', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .policy-header {
+      background: linear-gradient(135deg, var(--green-primary), var(--green-dark));
+      padding: 60px 24px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .policy-header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+      pointer-events: none;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: 50px;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+      backdrop-filter: blur(8px);
+    }
+
+    .policy-header h1 {
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 900;
+      color: white;
+      margin-bottom: 12px;
+      line-height: 1.1;
+    }
+
+    .policy-header p {
+      color: rgba(255,255,255,0.75);
+      font-size: clamp(14px, 2.5vw, 16px);
+      max-width: 540px;
+      margin: 0 auto 20px;
+      line-height: 1.6;
+    }
+
+    .effective-date {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 16px;
+      border-radius: 50px;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* ── Layout ── */
+    .policy-wrapper {
+      max-width: 860px;
+      margin: -40px auto 0;
+      padding: 0 20px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Navigation card ── */
+    .toc-card {
+      background: white;
+      border-radius: 24px;
+      padding: 28px 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 12px 40px var(--shadow);
+      border: 1px solid var(--border-light);
+    }
+
+    .toc-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .toc-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+    }
+
+    .toc-list a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--green-primary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 14px;
+      border-radius: 10px;
+      transition: all 0.25s var(--transition-smooth);
+      border: 1px solid transparent;
+    }
+
+    .toc-list a:hover {
+      background: var(--green-light);
+      border-color: var(--green-primary);
+      transform: translateX(4px);
+    }
+
+    .toc-num {
+      background: var(--green-light);
+      color: var(--green-primary);
+      font-size: 11px;
+      font-weight: 800;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Policy sections ── */
+    .policy-section {
+      background: white;
+      border-radius: 24px;
+      padding: 36px 40px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 30px var(--shadow);
+      border: 1px solid var(--border-light);
+      position: relative;
+      overflow: hidden;
+      scroll-margin-top: 24px;
+      transition: box-shadow 0.3s var(--transition-smooth);
+    }
+
+    .policy-section:hover {
+      box-shadow: 0 12px 40px var(--shadow-hover);
+    }
+
+    .policy-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--green-primary), var(--lavender));
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .section-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--green-light);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .section-title-group h2 {
+      font-size: clamp(1.1rem, 3vw, 1.3rem);
+      font-weight: 800;
+      color: var(--green-primary);
+      line-height: 1.2;
+    }
+
+    .section-title-group span {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .policy-section p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.8;
+      margin-bottom: 14px;
+    }
+
+    .policy-section p:last-of-type {
+      margin-bottom: 0;
+    }
+
+    .policy-section ul {
+      list-style: none;
+      margin: 14px 0;
+    }
+
+    .policy-section ul li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.7;
+      margin-bottom: 10px;
+      padding: 12px 16px;
+      background: var(--bg-primary);
+      border-radius: 12px;
+      border-left: 3px solid var(--green-light);
+      transition: border-color 0.2s;
+    }
+
+    .policy-section ul li:hover {
+      border-color: var(--green-primary);
+      background: var(--green-light);
+    }
+
+    .policy-section ul li::before {
+      content: '';
+      color: var(--green-primary);
+      font-size: 10px;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    .highlight-box {
+      background: linear-gradient(135deg, var(--green-light), rgba(255,255,255,0.5));
+      border: 1px solid rgba(46, 107, 78, 0.2);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin: 16px 0;
+      font-size: 14px;
+      color: var(--green-dark);
+      font-weight: 500;
+      line-height: 1.6;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .highlight-box .hi-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Contact card ── */
+    .contact-card {
+      background: linear-gradient(135deg, var(--green-primary), var(--green-dark));
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+      margin-top: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .contact-card::before {
+      content: '';
+      position: absolute;
+      font-size: 120px;
+      opacity: 0.06;
+      right: -20px;
+      bottom: -20px;
+      line-height: 1;
+    }
+
+    .contact-card h3 {
+      color: white;
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .contact-card p {
+      color: rgba(255,255,255,0.8);
+      font-size: 15px;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .contact-btns {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-white {
+      background: white;
+      color: var(--green-primary);
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s var(--transition-smooth);
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-white:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    .btn-outline-white {
+      background: transparent;
+      color: white;
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s var(--transition-smooth);
+      border: 2px solid rgba(255,255,255,0.6);
+      cursor: pointer;
+    }
+
+    .btn-outline-white:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: white;
+      transform: translateY(-3px);
+    }
+
+    /* ── Back link ── */
+    .back-bar {
+      padding: 20px 24px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green-primary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px;
+      background: white;
+      border-radius: 50px;
+      box-shadow: 0 2px 12px var(--shadow);
+      transition: all 0.3s var(--transition-smooth);
+    }
+
+    .back-link:hover {
+      transform: translateX(-4px);
+      box-shadow: 0 6px 20px var(--shadow-hover);
+    }
+
+    /* ── Footer strip ── */
+    .policy-footer {
+      background: var(--green-dark);
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+      padding: 20px 24px;
+      font-size: 13px;
+    }
+
+    .policy-footer a {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .policy-footer a:hover { color: white; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .policy-section { padding: 24px 20px; }
+      .policy-wrapper { padding: 0 14px 60px; }
+      .contact-card { padding: 28px 20px; }
+      .toc-card { padding: 20px; }
+      .toc-list { grid-template-columns: 1fr; }
+    }
+
+    /* Override terms.css section-number with vivid gradient */
+    .section-number {
+      font-size: 52px !important;
+      font-weight: 900 !important;
+      background: linear-gradient(135deg, var(--green-primary) 0%, #22c55e 60%, #16a34a 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
+      color: transparent !important;
+      opacity: 1 !important;
+    }
+    /* Privacy page uses terms layout */
+    .terms-layout { max-width: 1140px; }
+    .terms-main { flex: 1; min-width: 0; }
+    .terms-section { animation: fadeSlide .4s ease both; }
+    @keyframes fadeSlide { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+  </style>
+</head>
+<body>
+
+  <header class="navigation" id="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo" onclick="window.location.href='../index.html'">
+          <img src="../assets/logo.png" alt="BreedLink">
+        </div>
+      </div>
+      <div class="nav-center">
+        <nav class="menu" id="navMenu">
+          <a href="../index.html" id="nav-home">Home</a>
+          <a href="about.html" id="nav-about">About</a>
+          <a href="swipe.html" id="nav-breeders">Breeders</a>
+        </nav>
+        <div class="mobile-nav-auth" id="mobileNavAuth" style="display:none;">
+          <a href="login.html" class="mobile-signin">Sign In</a>
+          <a href="signup.html" class="mobile-signup">Sign Up</a>
+        </div>
+      </div>
+      <div class="nav-right" id="navRight">
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="Toggle menu" style="display:none;">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="profile-menu-container" id="profileMenuContainer" style="display: none;">
+          <button class="profile-btn" id="profileBtn" onclick="toggleProfileDropdown()">
+            <span class="default-avatar">👤</span>
+          </button>
+          <div class="profile-dropdown" id="profileDropdown">
+            <a href="profile.html" class="profile-dropdown-item"><span>👁️</span> View Profile</a>
+            <button class="profile-dropdown-item" onclick="openSettingsPanel(); toggleProfileDropdown();"><span>⚙️</span> Account Settings</button>
+            <div class="profile-dropdown-divider"></div>
+            <button class="profile-dropdown-item logout" onclick="handleLogout()"><span>🚪</span> Logout</button>
+          </div>
+        </div>
+        <div class="guest-options" id="guestOptions">
+          <a href="login.html" class="guest-btn signin">Sign In</a>
+          <a href="signup.html" class="guest-btn signup">Sign Up</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero (same pattern as terms.html) -->
+  <section class="terms-hero">
+    <div class="terms-hero-content">
+      <div class="hero-badge">🔒 Legal</div>
+      <h1>Privacy Policy</h1>
+      <p>We take your privacy seriously. Here's exactly what data we collect, how we use it, and how we protect it.</p>
+      <div class="terms-meta">
+        <span>📅 Effective: May 14, 2026</span>
+        <span>🔄 Version 1.0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Content — same two-column layout as terms.html -->
+  <div class="terms-layout">
+
+    <!-- Sidebar TOC -->
+    <aside class="terms-sidebar" id="termsSidebar">
+      <div class="toc-card">
+        <h4>📑 Table of Contents</h4>
+        <nav class="toc-nav">
+          <a href="#info-collect"  class="toc-link active">1. Information We Collect</a>
+          <a href="#how-use"       class="toc-link">2. How We Use Your Data</a>
+          <a href="#sharing"       class="toc-link">3. Sharing &amp; Disclosure</a>
+          <a href="#cookies"       class="toc-link">4. Cookies &amp; Tracking</a>
+          <a href="#security"      class="toc-link">5. Data Security</a>
+          <a href="#retention"     class="toc-link">6. Data Retention</a>
+          <a href="#your-rights"   class="toc-link">7. Your Rights</a>
+          <a href="#children"      class="toc-link">8. Children's Privacy</a>
+          <a href="#changes"       class="toc-link">9. Policy Changes</a>
+          <a href="#contact"       class="toc-link">10. Contact Us</a>
+        </nav>
+        <div class="toc-progress">
+          <div class="toc-progress-bar" id="tocProgress"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="terms-main">
+
+      <!-- 1. Information We Collect -->
+      <section class="terms-section" id="info-collect">
+        <div class="section-number">01</div>
+        <h2>Information We Collect</h2>
+        <p>When you create a BreedLink account or interact with our platform, we collect certain information to deliver and improve our services. This falls into two broad categories: information you provide directly, and information collected automatically.</p>
+        <p><strong>Information you provide:</strong></p>
+        <ul class="terms-list">
+          <li>📋 Account details such as your full name, email address, password, and chosen account type (Breeder or Adopter)</li>
+          <li>📸 Profile information including your location, profile photo, bio, and pet or animal listings</li>
+          <li>💬 Content you create — posts, comments, messages, and media uploads</li>
+          <li>💳 Payment information if you use any premium features (processed securely via our payment partners; we do not store raw card numbers)</li>
+          <li>📧 Communications you send to BreedLink support or other users via our platform</li>
+        </ul>
+        <p><strong>Information collected automatically:</strong></p>
+        <ul class="terms-list">
+          <li>🖥️ Device identifiers, IP address, browser type, and operating system</li>
+          <li>📊 Usage data such as pages visited, features used, and time spent on the platform</li>
+          <li>🔍 Log data and error reports to diagnose technical issues</li>
+          <li>📍 Location data (broad, city-level) derived from your IP address or, if you consent, your device GPS</li>
+        </ul>
+        <div class="terms-highlight">
+          <span class="highlight-icon">ℹ️</span>
+          <p>We only collect what we genuinely need to operate BreedLink. You are always in control of what profile information you choose to share publicly.</p>
+        </div>
+      </section>
+
+      <!-- 2. How We Use Your Data -->
+      <section class="terms-section" id="how-use">
+        <div class="section-number">02</div>
+        <h2>How We Use Your Data</h2>
+        <p>Your data helps us provide a safe, personalized experience for the BreedLink community. We use it to:</p>
+        <ul class="terms-list">
+          <li>🔐 Create and maintain your account, authenticate your identity, and keep your account secure</li>
+          <li>🐾 Match you with breeders or adopters based on your preferences and location</li>
+          <li>👤 Display your public profile and pet listings to other community members</li>
+          <li>📬 Send transactional emails such as account confirmations, password resets, and important platform notices</li>
+          <li>📣 Send optional marketing updates about new pets, platform features, and community events — only if you opted in during registration</li>
+          <li>📈 Analyze usage patterns (in aggregate and anonymized form) to improve our features and fix bugs</li>
+          <li>🛡️ Detect and prevent fraud, spam, and activity that violates our Terms of Service</li>
+          <li>⚖️ Comply with legal obligations applicable to our platform</li>
+        </ul>
+        <div class="terms-highlight warning">
+          <span class="highlight-icon">🚫</span>
+          <p>We do <strong>not</strong> use your data to train third-party AI models, and we do not sell your personal information to advertisers.</p>
+        </div>
+      </section>
+
+      <!-- 3. Sharing & Disclosure -->
+      <section class="terms-section" id="sharing">
+        <div class="section-number">03</div>
+        <h2>Sharing &amp; Disclosure</h2>
+        <p>We do not sell your personal information. We may share it in the following limited circumstances:</p>
+        <ul class="terms-list">
+          <li>👥 <strong>With other users</strong> — information you choose to make public (name, profile photo, location, pet listings) is visible to registered BreedLink members</li>
+          <li>🏢 <strong>With service providers</strong> — trusted third-party vendors (e.g., cloud hosting, email delivery, payment processors) who process data on our behalf under strict data-protection agreements</li>
+          <li>⚖️ <strong>For legal compliance</strong> — when required by applicable law, court order, or government request, or to protect the safety of our users or the public</li>
+          <li>🔄 <strong>Business transfers</strong> — in the event of a merger, acquisition, or asset sale, your data may be transferred as part of that transaction; we will notify you and seek fresh consent where required by law</li>
+          <li>✅ <strong>With your explicit consent</strong> — for any other purpose not listed above, we will ask for your permission first</li>
+        </ul>
+      </section>
+
+      <!-- 4. Cookies & Tracking -->
+      <section class="terms-section" id="cookies">
+        <div class="section-number">04</div>
+        <h2>Cookies &amp; Tracking</h2>
+        <p>BreedLink uses cookies and similar technologies to keep you signed in, remember your preferences, and understand how our platform is used.</p>
+        <ul class="terms-list">
+          <li>🔑 <strong>Essential cookies</strong> — required for core functionality such as session management and security. You cannot opt out of these without losing platform access</li>
+          <li>⚙️ <strong>Preference cookies</strong> — remember your settings and customizations across sessions</li>
+          <li>📊 <strong>Analytics cookies</strong> — help us understand aggregate usage patterns so we can improve the product (we use privacy-respecting analytics tools and do not fingerprint individual users)</li>
+          <li>💾 <strong>Local Storage</strong> — used to cache your session data and profile information locally for faster page loads</li>
+        </ul>
+        <p>You can control cookies through your browser settings. Disabling essential cookies may limit your ability to use certain features. We do not currently use advertising or cross-site tracking cookies.</p>
+      </section>
+
+      <!-- 5. Data Security -->
+      <section class="terms-section" id="security">
+        <div class="section-number">05</div>
+        <h2>Data Security</h2>
+        <p>We implement industry-standard safeguards to protect your personal information against unauthorized access, alteration, disclosure, or destruction:</p>
+        <ul class="terms-list">
+          <li>🔒 All data transmitted between your browser and our servers is encrypted via TLS/HTTPS</li>
+          <li>🔑 Passwords are hashed using a strong, salted algorithm (bcrypt); we never store plaintext passwords</li>
+          <li>🛡️ Access to production databases is restricted to authorized personnel through multi-factor authentication</li>
+          <li>🔍 Regular security audits and penetration tests are conducted on our infrastructure</li>
+          <li>🚨 We maintain an incident response plan; in the event of a breach, affected users will be notified promptly as required by law</li>
+        </ul>
+        <div class="terms-highlight warning">
+          <span class="highlight-icon">⚠️</span>
+          <p>No system is 100% secure. We encourage you to use a strong, unique password for your BreedLink account and to enable any additional security features we offer.</p>
+        </div>
+      </section>
+
+      <!-- 6. Data Retention -->
+      <section class="terms-section" id="retention">
+        <div class="section-number">06</div>
+        <h2>Data Retention</h2>
+        <p>We retain your personal data for as long as your account is active or as needed to provide you with our services. Specifically:</p>
+        <ul class="terms-list">
+          <li>📁 Active account data is kept for the lifetime of your account</li>
+          <li>🗑️ After account deletion, we delete or anonymize personal data within 30 days, except where retention is required by law (e.g., financial records may be kept for up to 7 years)</li>
+          <li>📊 Aggregate, anonymized analytics data may be retained indefinitely as it no longer identifies you</li>
+          <li>💾 Backup copies may persist for up to 90 days after the deletion window before being purged from our systems</li>
+        </ul>
+        <p>You may request early deletion of your data at any time — see Section 7 for how to exercise that right.</p>
+      </section>
+
+      <!-- 7. Your Rights -->
+      <section class="terms-section" id="your-rights">
+        <div class="section-number">07</div>
+        <h2>Your Rights</h2>
+        <p>You have meaningful control over your personal data. Depending on your jurisdiction, you may have the right to:</p>
+        <ul class="terms-list">
+          <li>👁️ <strong>Access</strong> — request a copy of the personal data we hold about you</li>
+          <li>✏️ <strong>Rectification</strong> — correct inaccurate or incomplete information in your profile</li>
+          <li>🗑️ <strong>Erasure ("Right to be Forgotten")</strong> — request that we delete your account and associated personal data</li>
+          <li>📦 <strong>Portability</strong> — receive your data in a machine-readable format so you can take it elsewhere</li>
+          <li>⏸️ <strong>Restrict processing</strong> — ask us to limit how we use your data under certain circumstances</li>
+          <li>🚫 <strong>Object</strong> — opt out of marketing emails or data processing based on our legitimate interests</li>
+          <li>↩️ <strong>Withdraw consent</strong> — at any time for any processing based solely on your consent</li>
+        </ul>
+        <p>To exercise any of these rights, please contact us at <strong>privacy@breedlink.com</strong>. We will respond within 30 days. You will not be charged for exercising your rights, and we will not discriminate against you for doing so.</p>
+      </section>
+
+      <!-- 8. Children's Privacy -->
+      <section class="terms-section" id="children">
+        <div class="section-number">08</div>
+        <h2>Children's Privacy</h2>
+        <p>BreedLink is not intended for use by anyone under the age of 18. We do not knowingly collect personal information from minors. If you are a parent or guardian and believe your child has provided us with personal data, please contact us immediately at <strong>privacy@breedlink.com</strong> and we will take steps to delete that information promptly.</p>
+        <div class="terms-highlight danger">
+          <span class="highlight-icon">🚫</span>
+          <p>If we discover that we have inadvertently collected data from a user under 18 without verifiable parental consent, we will delete that data as soon as possible.</p>
+        </div>
+      </section>
+
+      <!-- 9. Policy Changes -->
+      <section class="terms-section" id="changes">
+        <div class="section-number">09</div>
+        <h2>Policy Changes</h2>
+        <p>We may update this Privacy Policy from time to time to reflect changes in our practices or applicable law. When we make material changes, we will:</p>
+        <ul class="terms-list">
+          <li>📅 Update the "Effective Date" at the top of this page</li>
+          <li>📧 Send a notification to your registered email address at least 14 days before the changes take effect</li>
+          <li>🔔 Display a prominent notice on BreedLink when you next log in</li>
+        </ul>
+        <p>Your continued use of BreedLink after the effective date of any updated policy constitutes your acceptance of the changes. If you do not agree, you may delete your account before the changes take effect.</p>
+      </section>
+
+      <!-- 10. Contact Us -->
+      <section class="terms-section" id="contact">
+        <div class="section-number">10</div>
+        <h2>Contact Us</h2>
+        <p>If you have any questions, concerns, or requests regarding this Privacy Policy or how we handle your data, please reach out to our Privacy Team:</p>
+        <div class="contact-grid">
+          <div class="contact-item">
+            <span class="contact-icon">📧</span>
+            <div>
+              <strong>Email</strong>
+              <a href="mailto:privacy@breedlink.com">privacy@breedlink.com</a>
+            </div>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">📍</span>
+            <div>
+              <strong>Address</strong>
+              <span>Butuan City, Agusan del Norte, Philippines 8600</span>
+            </div>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">⏱️</span>
+            <div>
+              <strong>Response Time</strong>
+              <span>Within 5 business days</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <div class="terms-cta">
+        <div class="terms-cta-inner">
+          <h3>Questions about your privacy?</h3>
+          <p>Our team is here to help. Reach out anytime and we'll get back to you within 5 business days.</p>
+          <a href="terms.html" class="btn btn-primary">View Terms &amp; Conditions →</a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <h3>THE HUB FOR ALL ANIMAL BREEDERS</h3>
+      <p>Butuan City, Agusan del Norte, Philippines 8600<br>
+      <a href="mailto:community@breedlink.com">community@breedlink.com</a></p>
+    </div>
+  </footer>
+
+  <script src="../scripts/shared/db.js"></script>
+  <script src="../scripts/shared/core.js"></script>
+<script src="../scripts/shared/search.js"></script>
+  <script src="../scripts/shared/auth.js"></script>
+  <script src="../scripts/pages/terms.js"></script>
+  <script src="../scripts/shared/settings.js"></script>
+</body>
+</html>

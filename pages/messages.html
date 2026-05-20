@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fhlpalxmrppxgprippmj.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://fhlpalxmrppxgprippmj.supabase.co wss://fhlpalxmrppxgprippmj.supabase.co https://images.unsplash.com; frame-ancestors 'none';">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>Messages | BreedLink</title>
+  <link rel="stylesheet" href="../styles/pages/messages.css"></head>
+<body>
+
+  <div class="messages-modal-overlay" id="messagesModalOverlay">
+    <div class="messages-modal">
+      <button class="messages-modal-close" onclick="closeMessagesModal()" aria-label="Close messages window">×</button>
+      <!-- Main Messages Layout -->
+      <main class="messages-page">
+
+        <!-- Sidebar: Conversations List -->
+        <aside class="conversations-sidebar" id="conversationsSidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title-row">
+          <h2>💬 Messages</h2>
+        </div>
+        <div class="sidebar-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="sidebarSearch" placeholder="Search conversations..." oninput="filterConversations(this.value)">
+          <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none;">✕</button>
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="setFilter('all', this)">All</button>
+          <button class="filter-tab" onclick="setFilter('unread', this)">Unread</button>
+          <button class="filter-tab" onclick="setFilter('matches', this)">Matches</button>
+        </div>
+      </div>
+
+      <div class="conversations-list" id="conversationsList">
+        <!-- Injected by JS -->
+      </div>
+
+      <div class="sidebar-empty" id="sidebarEmpty" style="display: none;">
+        <div class="sidebar-empty-icon">💬</div>
+        <p>No conversations found</p>
+        <span>Start swiping to make matches!</span>
+      </div>
+    </aside>
+
+    <!-- Chat Panel -->
+    <section class="chat-panel" id="chatPanel">
+
+      <!-- Empty / Welcome State -->
+      <div class="chat-welcome" id="chatWelcome">
+        <div class="welcome-illustration">🐾</div>
+        <h2>Your Conversations</h2>
+        <p>Select a conversation to start chatting, or find a match on the Breeders page.</p>
+        <a href="swipe.html" class="btn btn-primary">Find Breeders →</a>
+      </div>
+
+      <!-- Active Chat -->
+      <div class="active-chat" id="activeChat" style="display: none;">
+
+        <!-- Chat Header -->
+        <div class="chat-header" id="chatHeader">
+          <button class="back-to-list" onclick="backToList()" title="Back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="chat-header-avatar" id="chatHeaderAvatar">
+            <img src="" alt="" id="chatAvatarImg">
+            <span class="online-dot" id="onlineDot"></span>
+          </div>
+          <div class="chat-header-info">
+            <h3 id="chatHeaderName">—</h3>
+            <span class="chat-header-status" id="chatHeaderStatus">—</span>
+          </div>
+          <div class="chat-header-actions">
+            <button class="chat-action-btn" onclick="viewProfile()" title="View Profile">👁️</button>
+            <button class="chat-action-btn" onclick="toggleChatInfo()" title="Info">ℹ️</button>
+            <button class="chat-action-btn danger" onclick="confirmDeleteConversation()" title="Delete">🗑️</button>
+          </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="messages-area" id="messagesArea">
+          <!-- Injected by JS -->
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+          <div class="typing-avatar" id="typingAvatar"></div>
+          <div class="typing-bubble">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area">
+          <div class="input-toolbar">
+            <button class="toolbar-btn" onclick="document.getElementById('fileInput').click()" title="Send Image">📷</button>
+            <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleImageUpload(this)">
+            <button class="toolbar-btn emoji-btn" onclick="toggleEmojiPicker()" title="Emoji">😊</button>
+          </div>
+          <div class="input-wrapper-msg">
+            <textarea
+              id="messageInput"
+              placeholder="Type a message..."
+              rows="1"
+              oninput="autoResize(this); handleTyping();"
+              onkeydown="handleInputKeydown(event)"
+            ></textarea>
+          </div>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+
+        <!-- Emoji Picker (simple) -->
+        <div class="emoji-picker" id="emojiPicker" style="display:none;">
+          <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chat Info Panel (right sidebar) -->
+    <aside class="chat-info-panel" id="chatInfoPanel" style="display: none;">
+      <button class="close-info-btn" onclick="toggleChatInfo()">✕</button>
+      <div class="info-avatar-section">
+        <div class="info-avatar" id="infoAvatar"></div>
+        <h3 id="infoName">—</h3>
+        <span id="infoRole" class="info-role">—</span>
+      </div>
+      <div class="info-animals" id="infoAnimals">
+        <h4>🐾 Animals Listed</h4>
+        <div class="info-animals-grid" id="infoAnimalsGrid"></div>
+      </div>
+      <div class="info-actions">
+        <button class="info-action-btn primary" onclick="viewProfile()">View Full Profile</button>
+        <button class="info-action-btn danger" onclick="confirmDeleteConversation()">Delete Conversation</button>
+      </div>
+    </aside>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- New Chat Modal -->
+  <div class="msg-modal" id="newChatModal" style="display:none;">
+    <div class="msg-modal-content">
+      <div class="msg-modal-header">
+        <h3>Start New Conversation</h3>
+        <button class="msg-modal-close" onclick="closeNewChat()">✕</button>
+      </div>
+      <div class="new-chat-search">
+        <input type="text" id="newChatSearchInput" placeholder="Search breeders or matches..." oninput="searchNewChatContacts(this.value)">
+      </div>
+      <div class="new-chat-list" id="newChatList"></div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="msg-modal" id="deleteModal" style="display:none;">
+    <div class="msg-modal-content small">
+      <div class="msg-modal-header">
+        <h3>Delete Conversation</h3>
+        <button class="msg-modal-close" onclick="closeDeleteModal()">✕</button>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 15px;">Are you sure you want to delete this conversation? This cannot be undone.</p>
+      <div class="msg-modal-actions">
+        <button class="info-action-btn" onclick="closeDeleteModal()">Cancel</button>
+        <button class="info-action-btn danger" onclick="deleteConversation()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="msg-toast" id="msgToast" style="display:none;"></div>
+
+  <!-- Image Lightbox -->
+  <div class="lightbox" id="lightbox" style="display:none;" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lightboxImg" src="" alt="Preview">
+  </div>
+
+  <script src="../scripts/shared/db.js"></script>
+  
+  
+  <script src="../scripts/shared/core.js"></script>
+<script src="../scripts/shared/search.js"></script>
+  <script src="../scripts/shared/auth.js"></script>
+  <script src="../scripts/shared/upload.js"></script>
+  
+  <script src="../scripts/shared/msgs-loader.js"></script>
+<script src="../scripts/shared/settings.js"></script>
+
+
+<script src="../scripts/pages/messages-inline.js"></script>
+</body>
+</html>
