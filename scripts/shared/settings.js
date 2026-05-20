@@ -447,16 +447,21 @@
     var btn = document.getElementById(btnId);
     if (!btn) return;
     btn.disabled = true;
+    // Show initial countdown value immediately (don't wait 1 second)
+    var m0 = Math.floor(seconds / 60);
+    var s0 = seconds % 60;
+    btn.textContent = 'Resend in ' + m0 + ':' + (s0 < 10 ? '0' : '') + s0;
     var timer = setInterval(function() {
       seconds--;
-      var m = Math.floor(seconds / 60);
-      var s = seconds % 60;
-      btn.textContent = 'Resend in ' + m + ':' + (s < 10 ? '0' : '') + s;
       if (seconds <= 0) {
         clearInterval(timer);
         btn.disabled = false;
         btn.textContent = 'Resend Code';
+        return;
       }
+      var m = Math.floor(seconds / 60);
+      var s = seconds % 60;
+      btn.textContent = 'Resend in ' + m + ':' + (s < 10 ? '0' : '') + s;
     }, 1000);
   }
 
