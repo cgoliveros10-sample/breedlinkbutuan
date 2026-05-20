@@ -283,34 +283,9 @@ var currentStep = 1;
         });
         sessionStorage.setItem('breedlink_pending_signup', pendingPayload);
 
-        // If Supabase returned a session immediately (email confirmation disabled),
-        // create the profile now and go straight to profile page
-        if (signUpData.session) {
-          await window.supabase.from('profiles').upsert({
-            id: signUpData.user.id,
-            name: name,
-            username: username,
-            account_type: selectedAccountType,
-            profile_picture: defaultAvatar(name),
-            cover_photo: 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=1200',
-            bio: '', tags: [],
-            contact: { email: email, phone: '', location: '' },
-            stats: { connections: 0, litters: 0, rating: 0, followers: 0, following: 0 },
-            location: ''
-          }, { onConflict: 'id' });
-          sessionStorage.setItem('breedlink_token', signUpData.session.access_token);
-          if (signUpData.session.refresh_token) {
-            sessionStorage.setItem('breedlink_refresh_token', signUpData.session.refresh_token);
-            localStorage.setItem('breedlink_refresh_token', signUpData.session.refresh_token);
-          }
-          // Profile created — clear pending data
-          sessionStorage.removeItem('breedlink_pending_signup');
-          if (typeof showToast === 'function') showToast('Account created! Welcome to BREEDLINK 🐾', 'success');
-          setTimeout(function() { window.location.href = 'profile.html'; }, 800);
-          return;
-        }
-
-        // No session = Supabase sent a 6-digit OTP — redirect to verify page
+        // Always require OTP verification — never skip to profile even if Supabase
+        // returns a session immediately. Profile creation only happens in verify-otp.html
+        // after the user successfully enters their code.
         if (typeof showToast === 'function') showToast('Check your email for a 6-digit code! 📧', 'success');
         setTimeout(function() { window.location.href = 'verify-otp.html'; }, 900);
 
