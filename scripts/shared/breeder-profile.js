@@ -392,7 +392,7 @@ async function submitRating() {
         if (_bp.userId) {
             try {
                 const { data: freshRatings } = await window.supabase
-                    .from('ratings').select('*').eq('rated_user_id', _bp.userId).order('created_at', {ascending: false});
+                    .from('ratings').select('id,rater_id,rated_user_id,rating,comment,created_at,updated_at').eq('rated_user_id', _bp.userId).order('created_at', {ascending: false});
                 _bp.ratings = freshRatings || [];
 
                 // Re-attach rater profiles
@@ -436,6 +436,41 @@ async function submitRating() {
 // ═══════════════════════════════════════════════════════════════════════════
 // OWNER PROFILE PANEL  –  fully self-contained, event-delegation based
 // ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Scroll the breeder-profile panel to a specific post and flash it.
+ * Works by finding the scrollable container (parent of ownerProfileBody)
+ * and scrolling it so the [data-post="<pid>"] element is in view.
+ */
+function _bpScrollToPost(pid) {
+    const postEl = document.querySelector(`[data-post="${pid}"]`);
+    if (!postEl) return false;
+
+    // The scroll container is the overflow-y:auto div wrapping ownerProfileBody
+    const body = document.getElementById('ownerProfileBody');
+    const scrollContainer = body ? body.parentElement : null;
+
+    if (scrollContainer) {
+        // Calculate offset relative to scroll container
+        const containerTop = scrollContainer.getBoundingClientRect().top;
+        const postTop = postEl.getBoundingClientRect().top;
+        const offset = postTop - containerTop + scrollContainer.scrollTop - 60; // 60px padding
+        scrollContainer.scrollTo({ top: offset, behavior: 'smooth' });
+    } else {
+        postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Highlight flash
+    postEl.style.transition = 'outline 0.2s, box-shadow 0.2s';
+    postEl.style.outline = '2.5px solid #4CAF50';
+    postEl.style.boxShadow = '0 0 0 4px rgba(76,175,80,0.18)';
+    setTimeout(() => {
+        postEl.style.outline = '';
+        postEl.style.boxShadow = '';
+    }, 1800);
+    return true;
+}
+
 let _bp = {
     userId: null, profile: null, posts: [], animals: [],
     ratings: [], likedIds: new Set(), savedIds: new Set(), tab: 'posts', meId: null, meName: null, meAvatar: null,
@@ -474,10 +509,10 @@ async function openBreederProfile(userId) {
 
         // Fetch all owner data in parallel
         const [profileRes, animalsRes, ratingsRes, postsRes, followersRes, followingRes] = await Promise.all([
-            window.supabase.from('profiles').select('*').eq('id', _bp.userId).single(),
-            window.supabase.from('animals').select('*').eq('user_id', _bp.userId).order('created_at', {ascending: false}),
-            window.supabase.from('ratings').select('*').eq('rated_user_id', _bp.userId).order('created_at', {ascending: false}),
-            window.supabase.from('posts').select('*').eq('user_id', _bp.userId).order('created_at', {ascending: false}).limit(30),
+            window.supabase.from('profiles').select('id,name,profile_picture,cover_photo,bio,account_type,is_verified,location,contact,tags,stats,username').eq('id', _bp.userId).single(),
+            window.supabase.from('animals').select('id,name,breed,species,image_url,status,user_id,created_at').eq('user_id', _bp.userId).order('created_at', {ascending: false}),
+            window.supabase.from('ratings').select('id,rater_id,rated_user_id,rating,comment,created_at,updated_at').eq('rated_user_id', _bp.userId).order('created_at', {ascending: false}),
+            window.supabase.from('posts').select('id,user_id,text,images,likes,shares,comments,created_at').eq('user_id', _bp.userId).order('created_at', {ascending: false}).limit(30),
             window.supabase.from('follows').select('id').eq('following_id', _bp.userId).eq('status', 'accepted'),
             window.supabase.from('follows').select('id').eq('follower_id', _bp.userId).eq('status', 'accepted')
         ]);
@@ -625,7 +660,7 @@ function _bpDraw() {
 <div style="font-family:inherit;width:100%;background:#ffffff;">
 
   <!-- COVER PHOTO — clean, no pills on top -->
-  <div style="position:relative;height:clamp(120px,32vw,180px);background:url('${_esc(cover)}') center/cover no-repeat;border-radius:20px 20px 0 0;overflow:hidden;">
+  <div style="position:relative;height:clamp(130px,28vw,175px);background:url('${_esc(cover)}') center top/cover no-repeat;border-radius:20px 20px 0 0;overflow:hidden;">
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.0) 40%,rgba(0,0,0,0.45) 100%);"></div>
     <!-- Close button — inside the card, top-right of cover -->
     <button onclick="closeBreederProfile()" style="position:absolute;top:12px;right:12px;z-index:10;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);border:none;color:white;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:background .2s;box-shadow:0 2px 8px rgba(0,0,0,0.25);" onmouseover="this.style.background='rgba(220,38,38,0.85)'" onmouseout="this.style.background='rgba(0,0,0,0.45)'">×</button>
@@ -687,13 +722,15 @@ function _bpDraw() {
       </div>`).join('')}
     </div>
     <!-- RATING STRIP (clickable → goes to Reviews tab) -->
-    <div data-tab="reviews" style="display:flex;align-items:center;gap:8px;padding:9px 13px;background:#fffbeb;border-radius:10px;border:1px solid #fde68a;margin-bottom:12px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#fffbeb'">
-      <div style="display:flex;gap:2px;">${starsHTML}</div>
+    <div data-tab="reviews" style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 13px;background:#fffbeb;border-radius:10px;border:1px solid #fde68a;margin-bottom:12px;cursor:pointer;transition:background .15s;flex-wrap:wrap;" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#fffbeb'">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;">
+        <div style="display:flex;gap:2px;flex-shrink:0;">${starsHTML}</div>
       ${avgR
         ? `<span style="font-size:14px;font-weight:800;color:#92400e;">${avgR}</span>
-           <span style="font-size:11px;color:#b45309;">(${_bp.ratings.length} review${_bp.ratings.length!==1?'s':''})</span>
-           <span style="font-size:10px;color:#b45309;margin-left:auto;">tap to view →</span>`
+           <span style="font-size:11px;color:#b45309;white-space:nowrap;">(${_bp.ratings.length} review${_bp.ratings.length!==1?'s':''})</span>`
         : `<span style="font-size:11px;color:#b45309;font-style:italic;">No reviews yet${!isOwnProfile?' — be the first!':''}</span>`}
+      </div>
+            ${avgR ? `<span style="font-size:10px;color:#b45309;white-space:nowrap;flex-shrink:0;">tap to view →</span>` : ''}
     </div>
 
     <!-- BIO -->
@@ -775,12 +812,14 @@ function _bpUpdateRatingStrip() {
         `<span style="color:${i <= Math.round(parseFloat(avgR||0))?'#f59e0b':'#d1d5db'};font-size:16px;">&#9733;</span>`
     ).join('');
     strip.innerHTML = `
-        <div style="display:flex;gap:2px;">${starsHTML}</div>
-        ${avgR
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;">
+          <div style="display:flex;gap:2px;flex-shrink:0;">${starsHTML}</div>
+          ${avgR
             ? `<span style="font-size:14px;font-weight:800;color:#92400e;">${avgR}</span>
-               <span style="font-size:11px;color:#b45309;">(${_bp.ratings.length} review${_bp.ratings.length!==1?'s':''})</span>
-               <span style="font-size:10px;color:#b45309;margin-left:auto;">tap to view →</span>`
-            : `<span style="font-size:11px;color:#b45309;font-style:italic;">No reviews yet</span>`}`;
+               <span style="font-size:11px;color:#b45309;white-space:nowrap;">(${_bp.ratings.length} review${_bp.ratings.length!==1?'s':''})</span>`
+            : `<span style="font-size:11px;color:#b45309;font-style:italic;">No reviews yet</span>`}
+        </div>
+        ${avgR ? `<span style="font-size:10px;color:#b45309;white-space:nowrap;flex-shrink:0;">tap to view →</span>` : ''}\`;
     // Also update the tab label
     const reviewsTab = document.querySelector('[data-tab="reviews"]');
     if (reviewsTab && reviewsTab !== strip) {
@@ -820,14 +859,15 @@ function _bpPostsHTML() {
     <div>
       <div style="font-size:13px;font-weight:700;color:var(--text-primary);">${auth}</div>
       <div style="font-size:11px;color:var(--text-muted);">${_fmtDate(p.created_at)}</div>
+        </div>
     </div>
   </div>
   ${p.text ? `<div style="font-size:13px;color:var(--text-primary);line-height:1.65;margin-bottom:10px;white-space:pre-wrap;cursor:pointer;" data-op="open-post" data-pid="${pid}">${_esc(p.text)}</div>` : ''}
   ${imgs.length ? `<div style="display:grid;grid-template-columns:${imgs.length>1?'1fr 1fr':'1fr'};gap:4px;border-radius:10px;overflow:hidden;margin-bottom:10px;cursor:pointer;" data-op="open-post" data-pid="${pid}">
-    ${imgs.slice(0,4).map((img,ii)=>`<div style="position:relative;overflow:hidden;">${imgs.length>4&&ii===3?`<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:800;z-index:1;">+${imgs.length-4}</div>`:''}<img src="${_esc(img)}" onerror="this.style.display='none'" style="width:100%;height:${imgs.length===1?'200px':'130px'};object-fit:cover;display:block;"></div>`).join('')}
+    ${imgs.slice(0,4).map((img,ii)=>`<div style="position:relative;overflow:hidden;">${imgs.length>4&&ii===3?`<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:800;z-index:1;">+${imgs.length-4}</div>`:''}<img src="${_esc(img)}" onerror="this.style.display='none'" style="width:100%;${imgs.length===1?'height:auto;max-height:480px;object-fit:contain;background:#f3f4f6;':'height:160px;object-fit:cover;'}display:block;"></div>`).join('')}
   </div>` : ''}
   <div style="font-size:11px;color:var(--text-muted);padding-top:8px;margin-bottom:2px;">
-    ❤️ <span data-like-count="${pid}">${p.likes||0}</span> likes • 💬 <span data-cmt-count="${pid}">${cmts.length}</span> comments
+    ❤️ <span data-like-count="${pid}">${p.likes||0}</span> likes • 💬 <span data-cmt-count="${pid}">${cmts.length}</span> comments${p.shares ? ` • 🔗 <span data-share-count="${pid}">${p.shares}</span> shares` : ` • 🔗 <span data-share-count="${pid}">0</span> shares`}
   </div>
   <div style="display:flex;gap:6px;margin-bottom:10px;">
     <button data-op="like" data-pid="${pid}"
@@ -848,7 +888,7 @@ function _bpPostsHTML() {
     <button data-op="share-post" data-pid="${pid}"
       style="flex:1;padding:9px 6px;background:linear-gradient(135deg,#C97C5D,#E5B567);color:white;border:none;border-radius:12px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;box-shadow:0 2px 6px rgba(201,124,93,0.25);transition:all .2s;"
       onmouseover="this.style.boxShadow='0 4px 14px rgba(201,124,93,0.45)';" onmouseout="this.style.boxShadow='0 2px 6px rgba(201,124,93,0.25)';">
-      🔗 Share
+      🔗 Share${p.shares ? ` <span data-share-count="${pid}" style="opacity:.85">${p.shares}</span>` : ` <span data-share-count="${pid}"></span>`}
     </button>
   </div>
   <div data-cmt-box="${pid}" style="display:none;margin-top:10px;">
@@ -1247,19 +1287,56 @@ function _bpClick(e) {
     if (op === 'share-post') {
         e.stopPropagation();
         const pid = el.dataset.pid;
-        const shareUrl = window.location.origin + window.location.pathname + '?post=' + pid;
+        const shareUrl = window.location.origin + '/pages/profile.html?post=' + pid;
+        const post = _bp.posts.find(p => String(p.id) === String(pid));
+
+        // Increment share counter
+        if (post) {
+            const newShares = (post.shares || 0) + 1;
+            post.shares = newShares;
+            window.supabase.from('posts').update({ shares: newShares }).eq('id', pid).catch(err => console.warn('share counter error:', err));
+            const cntEls = document.querySelectorAll(`[data-share-count="${pid}"]`);
+            cntEls.forEach(c => { c.textContent = newShares; });
+        }
+
+        // Scroll to post in panel and flash it
+        _bpScrollToPost(pid);
+
+        // Clipboard copy helper that works even without HTTPS focus
+        function _copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text).catch(() => _fallbackCopy(text));
+            }
+            return Promise.resolve(_fallbackCopy(text));
+        }
+        function _fallbackCopy(text) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+                document.body.appendChild(ta);
+                ta.focus(); ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            } catch(_) {}
+        }
+
+        // Try Web Share API first (mobile), fall back to clipboard copy
         if (navigator.share) {
-            navigator.share({ title: 'BreedLink Post', url: shareUrl }).then(() => {}, () => {
-                navigator.clipboard.writeText(shareUrl).then(
-                    () => showToast('Post link copied! 🔗'),
-                    () => showToast('Post link: ' + shareUrl)
-                );
+            navigator.share({
+                title: 'BreedLink Post',
+                text: post?.text ? post.text.slice(0, 100) : 'Check out this post on BreedLink',
+                url: shareUrl
+            }).then(() => {
+                showToast('Post shared! \uD83D\uDD17');
+            }).catch(() => {
+                // Web Share cancelled or failed — copy link instead
+                _copyToClipboard(shareUrl);
+                showToast('Link copied! \uD83D\uDD17');
             });
         } else {
-            navigator.clipboard.writeText(shareUrl).then(
-                () => showToast('Post link copied! 🔗'),
-                () => showToast('Post link: ' + shareUrl)
-            );
+            _copyToClipboard(shareUrl);
+            showToast('Post link copied! \uD83D\uDD17');
         }
         return;
     }
@@ -1632,17 +1709,15 @@ async function _bpToggleLike(postId) {
     try {
         if (liked) {
             await window.supabase.from('likes').delete().eq('user_id', _bp.meId).eq('post_id', pid);
-            const n = Math.max(0, (post.likes||1)-1);
-            await window.supabase.from('posts').update({likes: n}).eq('id', pid);
-            post.likes = n;
+            await window.supabase.rpc('decrement_post_likes', { post_id: pid });
+            post.likes = Math.max(0, (post.likes||1)-1);
             _bp.likedIds.delete(pid);
             if (btn) { btn.style.background='#E8F5E9'; btn.style.color='#4CAF50'; btn.style.fontWeight='600'; btn.textContent='🤍 Like'; }
         } else {
             const {error} = await window.supabase.from('likes').insert({user_id: _bp.meId, post_id: Number(pid)});
             if (error && error.code !== '23505') throw error;
-            const n = (post.likes||0)+1;
-            await window.supabase.from('posts').update({likes: n}).eq('id', pid);
-            post.likes = n;
+            await window.supabase.rpc('increment_post_likes', { post_id: pid });
+            post.likes = (post.likes||0)+1;
             _bp.likedIds.add(pid);
             if (btn) { btn.style.background='#4CAF50'; btn.style.color='white'; btn.style.fontWeight='600'; btn.textContent='❤️ Liked'; }
         }
@@ -1796,7 +1871,7 @@ function _bpOpenPostDetail(post) {
                     </div>
                 </div>
                 ${post.text ? `<div style="padding:12px 16px;font-size:14px;color:var(--text-primary);line-height:1.65;border-bottom:1px solid var(--border-light);flex-shrink:0;word-break:break-word;">${_esc(post.text)}</div>` : ''}
-                <div id="bspd-meta" style="padding:8px 16px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border-light);flex-shrink:0;">❤️ ${post.likes||0} likes &nbsp;•&nbsp; 💬 ${(post.comments||[]).length} comments</div>
+                <div id="bspd-meta" style="padding:8px 16px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border-light);flex-shrink:0;">❤️ ${post.likes||0} likes &nbsp;•&nbsp; 💬 ${(post.comments||[]).length} comments${post.shares ? ` &nbsp;•&nbsp; 🔗 ${post.shares} shares` : ''}</div>
                 <div style="display:flex;border-bottom:1px solid var(--border-light);flex-shrink:0;">
                     <button id="bspd-like-btn" style="flex:1;padding:10px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:${_bp.likedIds?.has(String(post.id))?'#e0245e':'var(--text-secondary)'};border-right:1px solid var(--border-light);transition:background .15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='none'">${_bp.likedIds?.has(String(post.id))?'❤️ Liked':'🤍 Like'}</button>
                     <button onclick="document.getElementById('bspd-comment-input').focus()" style="flex:1;padding:10px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-secondary);transition:background .15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='none'">💬 Comment</button>
@@ -1819,11 +1894,11 @@ function _bpOpenPostDetail(post) {
 
     // Load & render comments
     let _post = { ...post };
-    window.supabase.from('posts').select('*').eq('id', post.id).single().then(({data}) => {
+    window.supabase.from('posts').select('id,user_id,text,images,likes,shares,comments,created_at').eq('id', post.id).single().then(({data}) => {
         if (data) _post = data;
         renderComments(_post.comments||[], document.getElementById('bspd-comments-list'));
         const meta = document.getElementById('bspd-meta');
-        if (meta) meta.innerHTML = `❤️ ${_post.likes||0} likes &nbsp;•&nbsp; 💬 ${(_post.comments||[]).length} comments`;
+        if (meta) meta.innerHTML = `❤️ ${_post.likes||0} likes &nbsp;•&nbsp; 💬 ${(_post.comments||[]).length} comments${_post.shares ? ` &nbsp;•&nbsp; 🔗 ${_post.shares} shares` : ''}`;
     });
 
     // Like button
@@ -1835,20 +1910,18 @@ function _bpOpenPostDetail(post) {
         try {
             if (liked) {
                 await window.supabase.from('likes').delete().eq('user_id', _bp.meId).eq('post_id', pid);
-                const n = Math.max(0, (_post.likes||1)-1);
-                await window.supabase.from('posts').update({likes:n}).eq('id', pid);
-                _post.likes = n; _bp.likedIds?.delete(pid);
+                await window.supabase.rpc('decrement_post_likes', { post_id: Number(pid) });
+                _post.likes = Math.max(0, (_post.likes||1)-1); _bp.likedIds?.delete(pid);
                 if (btn) { btn.style.color='var(--text-secondary)'; btn.innerHTML='🤍 Like'; }
             } else {
                 const {error} = await window.supabase.from('likes').insert({user_id: _bp.meId, post_id: Number(pid)});
                 if (error && error.code !== '23505') throw error;
-                const n = (_post.likes||0)+1;
-                await window.supabase.from('posts').update({likes:n}).eq('id', pid);
-                _post.likes = n; _bp.likedIds?.add(pid);
+                await window.supabase.rpc('increment_post_likes', { post_id: Number(pid) });
+                _post.likes = (_post.likes||0)+1; _bp.likedIds?.add(pid);
                 if (btn) { btn.style.color='#e0245e'; btn.innerHTML='❤️ Liked'; }
             }
             const meta = document.getElementById('bspd-meta');
-            if (meta) meta.innerHTML = `❤️ ${_post.likes} likes &nbsp;•&nbsp; 💬 ${(_post.comments||[]).length} comments`;
+            if (meta) meta.innerHTML = `❤️ ${_post.likes} likes &nbsp;•&nbsp; 💬 ${(_post.comments||[]).length} comments${_post.shares ? ` &nbsp;•&nbsp; 🔗 ${_post.shares} shares` : ''}`;
         } catch(err) { showToast('Could not update like', 'error'); }
     });
 
@@ -1870,7 +1943,7 @@ function _bpOpenPostDetail(post) {
             if (bpPost) bpPost.comments = updated;
             renderComments(updated, document.getElementById('bspd-comments-list'));
             const meta = document.getElementById('bspd-meta');
-            if (meta) meta.innerHTML = `❤️ ${_post.likes||0} likes &nbsp;•&nbsp; 💬 ${updated.length} comments`;
+            if (meta) meta.innerHTML = `❤️ ${_post.likes||0} likes &nbsp;•&nbsp; 💬 ${updated.length} comments${_post.shares ? ` &nbsp;•&nbsp; 🔗 ${_post.shares} shares` : ''}`;
             showToast('Comment posted! 💬');
         } catch(err) { showToast('Failed to post comment', 'error'); }
     });
@@ -2020,7 +2093,8 @@ function init() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    init();
+    // Only run swipe init if cardStack exists (i.e. we're on the swipe page)
+    if (document.getElementById('cardStack')) init();
 });
 
 document.getElementById('matchOverlay')?.addEventListener('click', function(e) {
@@ -2028,7 +2102,8 @@ document.getElementById('matchOverlay')?.addEventListener('click', function(e) {
 });
 
 // Expose functions to window
-window.swipe = swipe;
+// swipe is defined in swipe.js — only expose if it's loaded
+if (typeof swipe !== 'undefined') window.swipe = swipe;
 // Export swipe-only functions only if they are defined
 if (typeof toggleFilters !== 'undefined') window.toggleFilters = toggleFilters;
 if (typeof updateBreeds !== 'undefined') window.updateBreeds = updateBreeds;
@@ -2076,7 +2151,6 @@ window.addEventListener('breedlink:avatarChanged', function (e) {
 // ── Share URL deep-link: ?post=<id> ──────────────────────────────────────
 // When someone opens a shared post link, open the breeder profile panel
 // and then immediately open that specific post's detail lightbox.
-// If the user is not logged in, save the return URL and redirect to login.
 (function _bpHandlePostDeepLink() {
     const params = new URLSearchParams(window.location.search);
     const postId = params.get('post');
@@ -2085,40 +2159,61 @@ window.addEventListener('breedlink:avatarChanged', function (e) {
     // Wait until auth + page are ready, then resolve the post's owner and open
     function tryOpen(attempts) {
         if (attempts <= 0) return;
-        // Need supabase ready
+        // Need supabase ready and user authenticated
         if (!window.supabase || !window.supabaseReady) {
             return setTimeout(() => tryOpen(attempts - 1), 300);
         }
-
-        // Check authentication — if not logged in, save return URL and go to login
-        const isLoggedIn = (typeof User !== 'undefined' && User.isAuthenticated && User.isAuthenticated()) ||
-                           !!sessionStorage.getItem('breedlink_token');
-        if (!isLoggedIn) {
-            // Store the full current URL (with ?post=ID) so login can bounce back
-            sessionStorage.setItem('breedlink_return_url', window.location.href);
-            // Resolve path to login.html relative to current page
-            const inSubfolder = window.location.pathname.includes('/pages/');
-            const loginPath = inSubfolder ? 'login.html' : 'pages/login.html';
-            window.location.href = loginPath;
-            return;
-        }
-
-        window.supabase.from('posts').select('*').eq('id', postId).single().then(({ data: post, error }) => {
+        window.supabase.from('posts').select('id,user_id,text,images,likes,shares,comments,created_at').eq('id', postId).single().then(({ data: post, error }) => {
             if (error || !post) { console.warn('Post deep-link: post not found', postId); return; }
             const userId = post.user_id;
             if (!userId) return;
-            // Open breeder profile, then once loaded open the post detail
-            openBreederProfile(userId).then(() => {
-                // Small delay to let the panel render
-                setTimeout(() => {
-                    const p = _bp.posts.find(p => String(p.id) === String(postId));
-                    if (p) _bpOpenPostDetail(p);
-                }, 400);
-            }, err => console.warn('Post deep-link: openBreederProfile failed', err));
-            // Clean up URL so refreshing doesn't re-trigger
+
+            // Clean up URL regardless of branch
             const cleanUrl = new URL(window.location.href);
             cleanUrl.searchParams.delete('post');
             window.history.replaceState({}, '', cleanUrl.toString());
+
+            // Resolve current user id (may be set by profile.js as window.currentUserId,
+            // or we fall back to _bp.meId / auth.getUser())
+            const resolveMe = async () => {
+                if (window.currentUserId) return String(window.currentUserId);
+                if (_bp.meId) return String(_bp.meId);
+                try {
+                    const { data } = await window.supabase.auth.getUser();
+                    return data?.user?.id ? String(data.user.id) : null;
+                } catch(_) { return null; }
+            };
+
+            resolveMe().then(meId => {
+                // If this is the current user's own post, scroll to it in the feed
+                if (meId && meId === String(userId)) {
+                    setTimeout(() => {
+                        const postEl = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+                        if (postEl) {
+                            postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            postEl.style.transition = 'outline 0.2s, box-shadow 0.2s';
+                            postEl.style.outline = '2.5px solid var(--green-primary, #4caf50)';
+                            postEl.style.boxShadow = '0 0 0 4px rgba(76,175,80,0.18)';
+                            setTimeout(() => { postEl.style.outline = ''; postEl.style.boxShadow = ''; }, 1800);
+                        }
+                    }, 500);
+                    return;
+                }
+
+                // Open breeder profile, then scroll to post and open its detail
+                openBreederProfile(userId).then(() => {
+                    // Small delay to let the panel render, then scroll + open detail
+                    setTimeout(() => {
+                        const p = _bp.posts.find(p => String(p.id) === String(postId));
+                        if (p) {
+                            // First scroll the panel to the post so the user sees where it is
+                            _bpScrollToPost(String(p.id));
+                            // Then open the post detail lightbox
+                            setTimeout(() => _bpOpenPostDetail(p), 300);
+                        }
+                    }, 450);
+                }).catch(err => console.warn('Post deep-link: openBreederProfile failed', err));
+            });
         });
     }
 
