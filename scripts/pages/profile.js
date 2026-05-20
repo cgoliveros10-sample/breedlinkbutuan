@@ -499,18 +499,18 @@ function renderPosts() {
             ${post.text ? `<div class="post-text" style="cursor:pointer;" onclick="openPostDetail(${post.id})">${escapeHtml(post.text)}</div>` : ''}
             ${imagesHtml}
             <div class="post-meta">
-                <span>${post.likes} likes • ${post.comments?.length || 0} comments${post.shares ? ` • ${post.shares} shares` : ''}</span>
+                <span>${post.likes} likes • ${post.comments?.length || 0} comments${post.shares ? ` • <span data-share-count="${post.id}">${post.shares}</span> shares` : ` • <span data-share-count="${post.id}" style="display:none">0</span> shares`}</span>
                 <span style="font-size:11px;color:var(--text-muted);cursor:pointer;" onclick="openPostDetail(${post.id})">View all comments</span>
             </div>
             <div class="post-actions">
-                <button class="action-like ${post.liked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
+                <button class="${post.liked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
                     <span>${post.liked ? '❤️' : '🤍'}</span> ${post.liked ? 'Liked' : 'Like'}
                 </button>
-                <button class="action-comment" onclick="openPostDetail(${post.id})">💬 Comment</button>
-                <button class="action-save ${post.saved ? 'saved' : ''}" onclick="toggleSave(${post.id})">
+                <button onclick="openPostDetail(${post.id})">💬 Comment</button>
+                <button class="${post.saved ? 'saved' : ''}" onclick="toggleSave(${post.id})">
                     <span>${post.saved ? '🔖' : '📑'}</span> ${post.saved ? 'Saved' : 'Save'}
                 </button>
-                <button class="action-share" onclick="sharePost(${post.id})">🔗 Share</button>
+                <button onclick="sharePost(${post.id})">🔗 Share</button>
             </div>
         </div>`;
     }).join('');
@@ -806,22 +806,8 @@ function focusComment(postId) {
 
 async function sharePost(postId) {
     const postLink = window.location.origin + '/pages/profile.html?post=' + postId;
-    const post = posts.find(p => String(p.id) === String(postId));
 
-    // Increment share counter in DB (fire-and-forget via direct update — no RPC needed)
-    if (post) {
-        const newShares = (post.shares || 0) + 1;
-        post.shares = newShares;
-        window.supabase
-            .from('posts')
-            .update({ shares: newShares })
-            .eq('id', postId)
-            .then(({ error }) => { if (error) console.warn('sharePost counter error:', error.message); });
-        const card = document.querySelector(`.post-card[data-post-id="${postId}"] .post-meta span`);
-        if (card) card.textContent = `${post.likes} likes • ${(post.comments||[]).length} comments • ${newShares} share${newShares !== 1 ? 's' : ''}`;
-    }
-
-    // Clipboard helper — works without HTTPS focus
+    // Clipboard helpers — work without HTTPS focus
     function _copyLink(text) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             return navigator.clipboard.writeText(text).catch(() => _fallbackCopy(text));
@@ -840,11 +826,43 @@ async function sharePost(postId) {
         } catch(_) {}
     }
 
-    // Determine whose profile to open
-    const ownerId = post?.user_id || currentUserId;
+    // Try to find the post locally first; if not found (e.g. saved post from another
+    // user, or post opened via breeder panel), fetch just enough from the DB.
+    let post = posts.find(p => String(p.id) === String(postId));
+    if (!post) {
+        try {
+            const { data } = await window.supabase
+                .from('posts')
+                .select('id,user_id,text,likes,shares,comments,created_at')
+                .eq('id', postId)
+                .single();
+            if (data) post = data;
+        } catch(e) {
+            console.warn('sharePost: could not fetch post from DB', e);
+        }
+    }
 
-    // If it's the current user's own post, scroll to it in the feed
-    if (String(ownerId) === String(currentUserId)) {
+    // Increment share counter in DB (fire-and-forget)
+    if (post) {
+        const newShares = (post.shares || 0) + 1;
+        post.shares = newShares;
+        window.supabase.from('posts').update({ shares: newShares }).eq('id', postId)
+            .catch(err => console.warn('sharePost counter error:', err));
+
+        // Update every share-count span rendered for this post (feed, saved panel, breeder panel)
+        document.querySelectorAll(`[data-share-count="${postId}"]`).forEach(el => {
+            el.textContent = newShares;
+        });
+        // Also update old-style feed meta span
+        const card = document.querySelector(`.post-card[data-post-id="${postId}"] .post-meta span`);
+        if (card) card.textContent = `${post.likes} likes • ${(post.comments||[]).length} comments • ${newShares} share${newShares !== 1 ? 's' : ''}`;
+    }
+
+    // Determine ownership — now always reliable because we fetched from DB above
+    const ownerId = post?.user_id || null;
+
+    // ── Own post: scroll to it in the feed ──────────────────────────────────
+    if (ownerId && String(ownerId) === String(currentUserId)) {
         const postEl = document.querySelector(`.post-card[data-post-id="${postId}"]`);
         if (postEl) {
             postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -858,18 +876,21 @@ async function sharePost(postId) {
         return;
     }
 
-    // Open the breeder profile panel and scroll to the post
-    if (typeof openBreederProfile === 'function') {
+    // ── Another user's post: open their breeder profile panel ───────────────
+    if (ownerId && typeof openBreederProfile === 'function') {
         try {
             await openBreederProfile(ownerId);
-            // Switch to posts tab if needed, then scroll to the specific post
+
+            // Switch to Posts tab if needed, then scroll to the specific post
             setTimeout(() => {
                 const postsTabBtn = document.querySelector('button[data-tab="posts"]');
                 if (postsTabBtn) postsTabBtn.click();
 
-                // After tab renders, scroll the panel's scroll container to the post
                 setTimeout(() => {
-                    const postEl = document.querySelector(`[data-post="${postId}"]`);
+                    // breeder-profile.js uses data-post attribute; fall back to data-post-id
+                    const postEl =
+                        document.querySelector(`[data-post="${postId}"]`) ||
+                        document.querySelector(`[data-post-id="${postId}"]`);
                     if (postEl) {
                         const body = document.getElementById('ownerProfileBody');
                         const scrollContainer = body ? body.parentElement : null;
@@ -891,10 +912,14 @@ async function sharePost(postId) {
         } catch(e) {
             console.warn('sharePost: openBreederProfile failed', e);
         }
+        _copyLink(postLink);
+        showToast('Opening post \u2022 Link copied \uD83D\uDD17');
+        return;
     }
 
+    // ── Fallback: post owner unknown, just copy the link ────────────────────
     _copyLink(postLink);
-    showToast('Opening post \u2022 Link copied \uD83D\uDD17');
+    showToast('Link copied \uD83D\uDD17');
 }
 
 function editComment(postId, commentId, currentText) {
@@ -2676,7 +2701,7 @@ function _renderPostDetailSide(sideEl, post) {
         ${post.text ? `<div style="padding:14px 18px;font-size:14px;color:var(--text-primary);line-height:1.65;border-bottom:1px solid var(--border-light);flex-shrink:0;word-break:break-word;">${escapeHtml(post.text)}</div>` : ''}
         <!-- Meta -->
         <div style="padding:8px 18px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border-light);flex-shrink:0;">
-            ❤️ ${post.likes} likes &nbsp;•&nbsp; 💬 ${comments.length} comments${post.shares ? ` &nbsp;•&nbsp; 🔗 ${post.shares} shares` : ''}
+            ❤️ ${post.likes} likes &nbsp;•&nbsp; 💬 ${comments.length} comments${post.shares ? ` &nbsp;•&nbsp; 🔗 <span data-share-count="${post.id}">${post.shares}</span> shares` : ` &nbsp;•&nbsp; 🔗 <span data-share-count="${post.id}" style="display:none">0</span> shares`}
         </div>
         <!-- Action buttons -->
         <div style="display:flex;gap:0;border-bottom:1px solid var(--border-light);flex-shrink:0;">
@@ -2779,7 +2804,7 @@ window._pdToggleLike = async function(postId) {
     }
     // Update meta count
     const metaEl = document.querySelector('#postDetailSide [style*="text-muted"][style*="border-bottom"]');
-    if (metaEl && post) metaEl.innerHTML = `❤️ ${post.likes} likes &nbsp;•&nbsp; 💬 ${(post.comments||[]).length} comments${post.shares ? ` &nbsp;•&nbsp; 🔗 ${post.shares} shares` : ''}`;
+    if (metaEl && post) metaEl.innerHTML = `❤️ ${post.likes} likes &nbsp;•&nbsp; 💬 ${(post.comments||[]).length} comments${post.shares ? ` &nbsp;•&nbsp; 🔗 <span data-share-count="${post.id}">${post.shares}</span> shares` : ` &nbsp;•&nbsp; 🔗 <span data-share-count="${post.id}" style="display:none">0</span> shares`}`;
 };
 window._pdToggleSave = async function(postId) {
     const btn = document.getElementById('pd-save-btn-' + postId);
@@ -3357,7 +3382,7 @@ async function renderSavedPosts() {
           <!-- Images grid -->
           ${imagesHtml}
           <!-- Meta -->
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">❤️ ${post.likes || 0} likes • 💬 ${comments.length} comments${post.shares ? ` • 🔗 ${post.shares} shares` : ''}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">❤️ ${post.likes || 0} likes • 💬 ${comments.length} comments${post.shares ? ` • 🔗 <span data-share-count="${post.id}">${post.shares}</span> shares` : ` • 🔗 <span data-share-count="${post.id}" style="display:none">0</span> shares`}</div>
           <!-- Action buttons -->
           <div style="display:flex;gap:0;border-top:1px solid var(--border-light);border-bottom:1px solid var(--border-light);margin-bottom:10px;">
             <button id="sp-like-btn-${post.id}" onclick="toggleSavedPostLike(${post.id})" style="flex:1;padding:9px 4px;background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;color:${isLiked ? '#e11d48' : 'var(--text-secondary)'};border-right:1px solid var(--border-light);transition:background .15s;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='none'">
