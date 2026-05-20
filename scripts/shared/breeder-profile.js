@@ -2162,23 +2162,53 @@ window.addEventListener('breedlink:avatarChanged', function (e) {
             if (error || !post) { console.warn('Post deep-link: post not found', postId); return; }
             const userId = post.user_id;
             if (!userId) return;
-            // Open breeder profile, then scroll to post and open its detail
-            openBreederProfile(userId).then(() => {
-                // Clean up URL only after successful open so refresh doesn't re-trigger
-                const cleanUrl = new URL(window.location.href);
-                cleanUrl.searchParams.delete('post');
-                window.history.replaceState({}, '', cleanUrl.toString());
-                // Small delay to let the panel render, then scroll + open detail
-                setTimeout(() => {
-                    const p = _bp.posts.find(p => String(p.id) === String(postId));
-                    if (p) {
-                        // First scroll the panel to the post so the user sees where it is
-                        _bpScrollToPost(String(p.id));
-                        // Then open the post detail lightbox
-                        setTimeout(() => _bpOpenPostDetail(p), 300);
-                    }
-                }, 450);
-            }).catch(err => console.warn('Post deep-link: openBreederProfile failed', err));
+
+            // Clean up URL regardless of branch
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete('post');
+            window.history.replaceState({}, '', cleanUrl.toString());
+
+            // Resolve current user id (may be set by profile.js as window.currentUserId,
+            // or we fall back to _bp.meId / auth.getUser())
+            const resolveMe = async () => {
+                if (window.currentUserId) return String(window.currentUserId);
+                if (_bp.meId) return String(_bp.meId);
+                try {
+                    const { data } = await window.supabase.auth.getUser();
+                    return data?.user?.id ? String(data.user.id) : null;
+                } catch(_) { return null; }
+            };
+
+            resolveMe().then(meId => {
+                // If this is the current user's own post, scroll to it in the feed
+                if (meId && meId === String(userId)) {
+                    setTimeout(() => {
+                        const postEl = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+                        if (postEl) {
+                            postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            postEl.style.transition = 'outline 0.2s, box-shadow 0.2s';
+                            postEl.style.outline = '2.5px solid var(--green-primary, #4caf50)';
+                            postEl.style.boxShadow = '0 0 0 4px rgba(76,175,80,0.18)';
+                            setTimeout(() => { postEl.style.outline = ''; postEl.style.boxShadow = ''; }, 1800);
+                        }
+                    }, 500);
+                    return;
+                }
+
+                // Open breeder profile, then scroll to post and open its detail
+                openBreederProfile(userId).then(() => {
+                    // Small delay to let the panel render, then scroll + open detail
+                    setTimeout(() => {
+                        const p = _bp.posts.find(p => String(p.id) === String(postId));
+                        if (p) {
+                            // First scroll the panel to the post so the user sees where it is
+                            _bpScrollToPost(String(p.id));
+                            // Then open the post detail lightbox
+                            setTimeout(() => _bpOpenPostDetail(p), 300);
+                        }
+                    }, 450);
+                }).catch(err => console.warn('Post deep-link: openBreederProfile failed', err));
+            });
         });
     }
 
