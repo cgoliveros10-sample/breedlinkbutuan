@@ -794,49 +794,49 @@ body {
     box-shadow: 0 5px 15px rgba(0,0,0,0.15);
 }
 
-.post-actions button:first-child {
+/* Like button */
+.post-actions .action-like {
     background: var(--like-light);
     color: var(--like);
 }
-
-.post-actions button:first-child:hover,
-.post-actions button:first-child.liked {
+.post-actions .action-like:hover,
+.post-actions .action-like.liked {
     background: var(--like);
     color: white;
     box-shadow: 0 4px 15px rgba(76, 175, 80, 0.35);
     animation: likePop 0.4s var(--transition-bounce);
 }
 
-.post-actions button:nth-child(2) {
+/* Comment button */
+.post-actions .action-comment {
     background: var(--superlike-light);
     color: var(--superlike);
 }
-
-.post-actions button:nth-child(2):hover {
+.post-actions .action-comment:hover {
     background: var(--superlike);
     color: white;
     box-shadow: 0 4px 15px rgba(59, 154, 225, 0.35);
 }
 
-.post-actions button:nth-child(3) {
+/* Save button */
+.post-actions .action-save {
     background: #FEF3C7;
     color: #D97706;
 }
-
-.post-actions button:nth-child(3):hover,
-.post-actions button:nth-child(3).saved {
+.post-actions .action-save:hover,
+.post-actions .action-save.saved {
     background: #D97706;
     color: white;
     box-shadow: 0 4px 15px rgba(217, 119, 6, 0.35);
 }
 
-.post-actions button:last-child {
+/* Share button */
+.post-actions .action-share {
     background: linear-gradient(135deg, var(--terracotta), var(--wheat));
     color: white;
     box-shadow: 0 2px 8px rgba(201, 124, 93, 0.25);
 }
-
-.post-actions button:last-child:hover {
+.post-actions .action-share:hover {
     box-shadow: 0 4px 15px rgba(201, 124, 93, 0.45);
 }
 
