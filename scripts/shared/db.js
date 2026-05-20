@@ -51,7 +51,9 @@ console.log('Config loaded');
     }
 
     function getRefreshToken() {
-        return sessionStorage.getItem('breedlink_refresh_token') || '';
+        return sessionStorage.getItem('breedlink_refresh_token')
+            || localStorage.getItem('breedlink_refresh_token')
+            || '';
     }
 
     // ── Check if a JWT is expired (or about to expire within 60s) ────────
@@ -95,6 +97,7 @@ console.log('Config loaded');
                 }
                 if (data.refresh_token) {
                     sessionStorage.setItem('breedlink_refresh_token', data.refresh_token);
+                    localStorage.setItem('breedlink_refresh_token', data.refresh_token);
                 }
                 return !!data.access_token;
             } catch (e) {
@@ -157,7 +160,9 @@ console.log('Config loaded');
 
     // ── URL builder ──────────────────────────────────────────────────────
     function buildUrl(table, columns, filters, orFilter, notFilters, orderCol, orderAsc, limitN) {
-        let url = `${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(columns)}`;
+        // Strip whitespace only — PostgREST parses nested selects like profiles:user_id(name,photo)
+        // natively; encodeURIComponent would mangle colons, parens, and spaces in column specs.
+        let url = `${SUPABASE_URL}/rest/v1/${table}?select=${columns.replace(/\s+/g, '')}`;
         for (const [col, val] of filters) {
             url += `&${encodeURIComponent(col)}=eq.${encodeURIComponent(val)}`;
         }
@@ -437,7 +442,7 @@ console.log('Config loaded');
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error_description || data.message || 'Login failed');
                     if (data.access_token) sessionStorage.setItem('breedlink_token', data.access_token);
-                    if (data.refresh_token) sessionStorage.setItem('breedlink_refresh_token', data.refresh_token);
+                    if (data.refresh_token) { sessionStorage.setItem('breedlink_refresh_token', data.refresh_token); localStorage.setItem('breedlink_refresh_token', data.refresh_token); }
                     return { data: { user: data.user, session: { access_token: data.access_token } }, error: null };
                 } catch (error) {
                     return { data: null, error };
@@ -454,7 +459,7 @@ console.log('Config loaded');
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error_description || data.message || 'Signup failed');
                     if (data.access_token) sessionStorage.setItem('breedlink_token', data.access_token);
-                    if (data.refresh_token) sessionStorage.setItem('breedlink_refresh_token', data.refresh_token);
+                    if (data.refresh_token) { sessionStorage.setItem('breedlink_refresh_token', data.refresh_token); localStorage.setItem('breedlink_refresh_token', data.refresh_token); }
                     // If no access_token, user needs OTP verification — return null session
                     // so auth.js correctly triggers the OTP flow instead of assuming login
                     const session = data.access_token
@@ -601,7 +606,7 @@ console.log('Config loaded');
                     const data = await response.json();
                     if (!response.ok) return { data: null, error: new Error(data.error_description || data.message || 'OTP verification failed') };
                     if (data.access_token) sessionStorage.setItem('breedlink_token', data.access_token);
-                    if (data.refresh_token) sessionStorage.setItem('breedlink_refresh_token', data.refresh_token);
+                    if (data.refresh_token) { sessionStorage.setItem('breedlink_refresh_token', data.refresh_token); localStorage.setItem('breedlink_refresh_token', data.refresh_token); }
                     return { data: { user: data.user, session: { access_token: data.access_token } }, error: null };
                 } catch (e) {
                     return { data: null, error: e };
