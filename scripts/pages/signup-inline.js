@@ -355,17 +355,18 @@ var currentStep = 1;
       }
       // 2-minute cooldown before allowing another resend
       var _ceSeconds = 120;
-      btn.textContent = 'Resend in 2:00';
+      btn.textContent = 'Resend in 2:00'; // show immediately
       var _ceTimer = setInterval(function() {
         _ceSeconds--;
-        var m = Math.floor(_ceSeconds / 60);
-        var s = _ceSeconds % 60;
-        btn.textContent = 'Resend in ' + m + ':' + (s < 10 ? '0' : '') + s;
         if (_ceSeconds <= 0) {
           clearInterval(_ceTimer);
           btn.disabled = false;
           btn.textContent = 'Resend Email';
+          return;
         }
+        var m = Math.floor(_ceSeconds / 60);
+        var s = _ceSeconds % 60;
+        btn.textContent = 'Resend in ' + m + ':' + (s < 10 ? '0' : '') + s;
       }, 1000);
     }
 
