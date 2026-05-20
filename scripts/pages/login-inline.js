@@ -226,6 +226,7 @@ var _dpUser = null;
     try { await window.supabase.auth.signOut(); } catch(e) {}
     sessionStorage.removeItem('breedlink_token');
     sessionStorage.removeItem('breedlink_refresh_token');
+    localStorage.removeItem('breedlink_refresh_token');
     sessionStorage.removeItem('breedlink_user');
     document.getElementById('deletionPromptOverlay').style.display = 'none';
     if (typeof showToast === 'function') showToast('Logged out. Your account will be deleted as scheduled.', 'info');
