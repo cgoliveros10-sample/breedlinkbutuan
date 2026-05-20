@@ -811,20 +811,40 @@ async function sharePost(postId) {
         if (card) card.textContent = `${post.likes} likes • ${(post.comments||[]).length} comments • ${newShares} share${newShares !== 1 ? 's' : ''}`;
     }
 
+    // Clipboard helper — works without HTTPS focus
+    function _copyLink(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).catch(() => _fallbackCopy(text));
+        }
+        return Promise.resolve(_fallbackCopy(text));
+    }
+    function _fallbackCopy(text) {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+            document.body.appendChild(ta);
+            ta.focus(); ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        } catch(_) {}
+    }
+
     // Determine whose profile to open
     const ownerId = post?.user_id || currentUserId;
 
     // If it's the current user's own post, scroll to it in the feed
-    if (ownerId === currentUserId) {
+    if (String(ownerId) === String(currentUserId)) {
         const postEl = document.querySelector(`.post-card[data-post-id="${postId}"]`);
         if (postEl) {
             postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            postEl.style.transition = 'outline 0.2s, box-shadow 0.2s';
             postEl.style.outline = '2.5px solid var(--green-primary)';
-            setTimeout(() => { postEl.style.outline = ''; }, 1800);
+            postEl.style.boxShadow = '0 0 0 4px rgba(76,175,80,0.18)';
+            setTimeout(() => { postEl.style.outline = ''; postEl.style.boxShadow = ''; }, 1800);
         }
-        // Also copy link
-        navigator.clipboard.writeText(postLink).catch(() => {});
-        showToast('Scrolled to post • Link copied 🔗');
+        _copyLink(postLink);
+        showToast('Scrolled to post \u2022 Link copied \uD83D\uDD17');
         return;
     }
 
@@ -841,7 +861,6 @@ async function sharePost(postId) {
                 setTimeout(() => {
                     const postEl = document.querySelector(`[data-post="${postId}"]`);
                     if (postEl) {
-                        // Find the scrollable container (parent of ownerProfileBody)
                         const body = document.getElementById('ownerProfileBody');
                         const scrollContainer = body ? body.parentElement : null;
                         if (scrollContainer) {
@@ -864,9 +883,8 @@ async function sharePost(postId) {
         }
     }
 
-    // Copy link as fallback
-    navigator.clipboard.writeText(postLink).catch(() => {});
-    showToast('Opening post • Link copied 🔗');
+    _copyLink(postLink);
+    showToast('Opening post \u2022 Link copied \uD83D\uDD17');
 }
 
 function editComment(postId, commentId, currentText) {
