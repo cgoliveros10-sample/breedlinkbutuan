@@ -202,6 +202,8 @@
 
       <!-- ── Step 3: Password + Terms ── -->
       <div class="form-step" id="formStep3">
+        <!-- Hidden username field so Chrome links the password fields to an account for autofill -->
+        <input type="text" name="username" autocomplete="username" style="display:none;" aria-hidden="true">
         <div class="signup-header">
           <h2>Secure Your Account</h2>
           <p>Almost there — set a strong password</p>
