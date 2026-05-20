@@ -1,3 +1,13 @@
+/* ===================================================
+   AVATAR HELPERS
+   =================================================== */
+function getInitials(name) {
+  if (!name) return '?';
+  var parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return parts[0].slice(0, 2).toUpperCase();
+}
+
 /**
  * messages.js — BreedLink Messaging (Supabase-connected)
  *
@@ -386,7 +396,7 @@ function renderSidebar() {
     const preview = last ? (last.type === 'image' ? '📷 Image' : escHtml((last.text || '').slice(0, 42))) : 'No messages yet';
     const time = last ? formatTime(last.ts) : '';
     return '<div class="conversation-item ' + (isActive ? 'active' : '') + ' ' + (unread > 0 ? 'unread' : '') + '" onclick="openConversation(\'' + c.id + '\')" data-id="' + c.id + '">' +
-      '<div class="conv-avatar">' + (c.avatar ? '<img src="' + escHtml(c.avatar) + '" alt="' + escHtml(c.name) + '" onerror="this.outerHTML=\'<div class=conv-avatar-placeholder>🐾</div>\'">' : '<div class="conv-avatar-placeholder">🐾</div>') + (c.online ? '<span class="conv-online-dot"></span>' : '') + '</div>' +
+      '<div class="conv-avatar">' + (c.avatar ? '<img src="' + escHtml(c.avatar) + '" alt="' + escHtml(c.name) + '" onerror="this.outerHTML='<div class=conv-avatar-placeholder>'+getInitials(c.name)+'</div>'">' : '<div class="conv-avatar-placeholder">' + getInitials(c.name) + '</div>') + (c.online ? '<span class="conv-online-dot"></span>' : '') + '</div>' +
       '<div class="conv-body"><div class="conv-top"><span class="conv-name">' + escHtml(c.name) + '</span><span class="conv-time">' + time + '</span></div>' +
       '<div class="conv-bottom"><span class="conv-preview">' + preview + '</span>' + (unread > 0 ? '<span class="conv-unread-badge">' + unread + '</span>' : (c.isMatch ? '<span class="conv-match-badge">💚 Match</span>' : '')) + '</div></div></div>';
   }).join('');
@@ -410,7 +420,15 @@ function renderMessages(userId) {
     if (dateLabel !== lastDateLabel) { html += '<div class="date-divider">' + dateLabel + '</div>'; lastDateLabel = dateLabel; }
     const isSent = msg.from === 'me';
     const showAvatar = !isSent && (i === msgs.length - 1 || msgs[i + 1].from !== msg.from);
-    const avatarHtml = !isSent ? '<img class="msg-avatar ' + (showAvatar ? '' : 'hidden') + '" src="' + (contact && contact.avatar ? contact.avatar : '') + '" alt="' + escHtml(contact ? contact.name : '') + '" onerror="this.src=\'data:image/svg+xml,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 40 40&quot;><circle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;20&quot; fill=&quot;%23E8F3EE&quot;/><text x=&quot;50%&quot; y=&quot;55%&quot; text-anchor=&quot;middle&quot; font-size=&quot;18&quot;>🐾</text></svg>\'">' : '';
+    const cName = contact ? contact.name : '';
+    const cAvatar = contact && contact.avatar ? contact.avatar : '';
+    const hideCls = showAvatar ? '' : ' hidden';
+    const cInitials = getInitials(cName);
+    const avatarHtml = !isSent ? (
+      cAvatar
+        ? '<img class="msg-avatar' + hideCls + '" src="' + cAvatar + '" alt="' + escHtml(cName) + '" onerror="this.outerHTML='<div class=\"msg-avatar' + hideCls + ' avatar-initials\">' + cInitials + '</div>'">'
+        : '<div class="msg-avatar' + hideCls + ' avatar-initials">' + cInitials + '</div>'
+    ) : '';
     const bubbleContent = msg.type === 'image'
       ? '<img class="msg-image" src="' + msg.src + '" alt="Image" onclick="openLightbox(\'' + msg.src + '\')" loading="lazy">'
       : escHtml(msg.text) + '<span class="msg-time">' + formatTime(msg.ts) + (isSent ? ' <span class="msg-status">✓</span>' : '') + '</span>';
@@ -438,7 +456,16 @@ async function openConversation(userId) {
   if (activeChat) activeChat.style.display = 'flex';
 
   const avatarImg = document.getElementById('chatAvatarImg');
-  if (avatarImg && contact.avatar) { avatarImg.src = contact.avatar; avatarImg.style.display = 'block'; }
+  const chatHeaderAvatar = document.getElementById('chatHeaderAvatar');
+  if (avatarImg && contact.avatar) {
+    avatarImg.src = contact.avatar;
+    avatarImg.style.display = 'block';
+    if (chatHeaderAvatar) chatHeaderAvatar.classList.remove('initials-mode');
+  } else if (chatHeaderAvatar) {
+    avatarImg.style.display = 'none';
+    chatHeaderAvatar.classList.add('initials-mode');
+    chatHeaderAvatar.setAttribute('data-initials', getInitials(contact.name));
+  }
   const nameEl = document.getElementById('chatHeaderName');
   const statusEl = document.getElementById('chatHeaderStatus');
   const dotEl = document.getElementById('onlineDot');
@@ -630,7 +657,7 @@ function renderNewChatList(contacts) {
   if (!contacts.length) { list.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;font-size:14px;">No contacts found</p>'; return; }
   list.innerHTML = contacts.map(c =>
     '<div class="new-chat-user" onclick="startChat(\'' + c.id + '\')">' +
-    '<div class="nc-avatar">' + (c.avatar ? '<img src="' + escHtml(c.avatar) + '" alt="' + escHtml(c.name) + '" onerror="this.outerHTML=\'<span>🐾</span>\'>' : '<span>🐾</span>') + '</div>' +
+    '<div class="nc-avatar">' + (c.avatar ? '<img src="' + escHtml(c.avatar) + '" alt="' + escHtml(c.name) + '" onerror="this.outerHTML=\'<div class=\\\"nc-avatar-initials\\\">\'+getInitials(\'' + escHtml(c.name) + '\')+\'</div>\'">' : '<div class="nc-avatar-initials">' + getInitials(c.name) + '</div>') + '</div>' +
     '<div class="nc-info"><h4>' + escHtml(c.name) + '</h4><span>' + escHtml(c.role) + '</span></div>' +
     (c.isMatch ? '<span class="nc-match-badge">💚 Match</span>' : '') + '</div>'
   ).join('');
@@ -652,7 +679,7 @@ function updateInfoPanel(contact) {
   const n = document.getElementById('infoName'), r = document.getElementById('infoRole'), a = document.getElementById('infoAvatar');
   if (n) n.textContent = contact.name;
   if (r) r.textContent = contact.role;
-  if (a) a.innerHTML = contact.avatar ? '<img src="' + escHtml(contact.avatar) + '" alt="' + escHtml(contact.name) + '">' : '🐾';
+  if (a) a.innerHTML = contact.avatar ? '<img src="' + escHtml(contact.avatar) + '" alt="' + escHtml(contact.name) + '">' : '<div class="info-avatar-initials">' + getInitials(contact.name) + '</div>';
   const grid = document.getElementById('infoAnimalsGrid'), sec = document.getElementById('infoAnimals');
   if (grid && sec) {
     if (contact.animals && contact.animals.length) {
