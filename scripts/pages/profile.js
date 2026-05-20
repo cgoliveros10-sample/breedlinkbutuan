@@ -332,6 +332,16 @@ async function loadPosts() {
 }
 
 async function loadAnimals() {
+    // If currentUserId is not yet set (e.g. auth race condition on first load),
+    // try to resolve it from the session before giving up.
+    if (!currentUserId) {
+        try {
+            const freshUser = await User.getFreshUser();
+            if (freshUser && freshUser.id) {
+                currentUserId = freshUser.id;
+            }
+        } catch (_) {}
+    }
     if (!currentUserId) return;
     try {
         const { data, error } = await window.supabase
@@ -2231,6 +2241,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     await loadPosts();
     await loadAnimals();
+
+    // Safety net: if animals came back empty AND we have a valid user, retry once
+    // after a short delay — guards against auth token race on first load.
+    if (animals.length === 0 && currentUserId) {
+        await new Promise(r => setTimeout(r, 1000));
+        await loadAnimals();
+    }
+
     loadFollowCounts();
     
     setupEventListeners();
