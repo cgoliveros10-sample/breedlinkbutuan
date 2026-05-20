@@ -7,42 +7,6 @@ function getToken() {
 
 // USER OBJECT (Complete)
 // ============================================
-// ── Login rate-limit (client-side defence-in-depth) ─────────────────────────
-// Max 5 attempts per 15-minute window, stored in sessionStorage so it resets
-// when the tab is closed. Supabase's own server-side limiting is the real guard.
-const _rl = {
-    MAX: 5,
-    WINDOW_MS: 15 * 60 * 1000,
-    key: 'bl_login_attempts',
-    _load() {
-        try { return JSON.parse(sessionStorage.getItem(this.key)) || { count: 0, since: Date.now() }; }
-        catch(_) { return { count: 0, since: Date.now() }; }
-    },
-    _save(state) {
-        try { sessionStorage.setItem(this.key, JSON.stringify(state)); } catch(_) {}
-    },
-    check() {
-        const s = this._load();
-        if (Date.now() - s.since > this.WINDOW_MS) {
-            this._save({ count: 0, since: Date.now() });
-            return true; // window reset
-        }
-        if (s.count >= this.MAX) {
-            const waitMin = Math.ceil((this.WINDOW_MS - (Date.now() - s.since)) / 60000);
-            throw new Error(`Too many login attempts. Please wait ${waitMin} minute${waitMin !== 1 ? 's' : ''} before trying again.`);
-        }
-        return true;
-    },
-    record() {
-        const s = this._load();
-        if (Date.now() - s.since > this.WINDOW_MS) { this._save({ count: 1, since: Date.now() }); return; }
-        this._save({ count: s.count + 1, since: s.since });
-    },
-    reset() {
-        try { sessionStorage.removeItem(this.key); } catch(_) {}
-    }
-};
-
 const User = {
     current: null,
 
@@ -50,7 +14,7 @@ const User = {
         try {
             const { data: profile, error } = await window.supabase
                 .from('profiles')
-                .select('id,name,profile_picture,cover_photo,bio,account_type,location,contact,tags,stats,username')
+                .select('*')
                 .eq('id', userId)
                 .single();
             
@@ -69,7 +33,7 @@ const User = {
                 accountType: profile?.account_type || 'breeder',
                 contact: profile?.contact || { email: '', phone: '', location: '' },
                 stats: profile?.stats || { connections: 0, litters: 0, rating: 0, followers: 0, following: 0 },
-                location: profile?.location || ''
+                location: profile?.location || 'Butuan City, Philippines'
             };
         } catch (error) {
             console.error('Fetch from Supabase error:', error);
@@ -122,14 +86,13 @@ const User = {
 
     async login(email, password) {
         try {
-            _rl.check(); // client-side rate limit check
             const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
             
-            if (error) { _rl.record(); throw new Error(error.message); }
-            if (!data || !data.user) { _rl.record(); throw new Error('Please check your username/email or password and try again.'); }
+            if (error) throw new Error(error.message);
+            if (!data || !data.user) throw new Error('Please check your username/email or password and try again.');
             
             const freshUser = await this.fetchFromSupabase(data.user.id);
-            _rl.reset(); // clear failed attempts on successful login
+            
             if (freshUser) {
                 this.current = freshUser;
             } else {
@@ -145,7 +108,7 @@ const User = {
                     accountType: data.user.user_metadata?.account_type || 'breeder',
                     contact: { email: data.user.email, phone: '', location: '' },
                     stats: { connections: 0, litters: 0, rating: 0, followers: 0, following: 0 },
-                    location: data.user.user_metadata?.location || ''
+                    location: data.user.user_metadata?.location || 'Butuan City, Philippines'
                 };
                 // Upsert so future logins will find this row
                 try {
@@ -169,7 +132,7 @@ const User = {
             if (data.session) {
                 sessionStorage.setItem('breedlink_token', data.session.access_token);
                 if (data.session.refresh_token) {
-                    sessionStorage.setItem('breedlink_refresh_token', data.session.refresh_token); localStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
+                    sessionStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
                 }
             }
             sessionStorage.setItem('breedlink_user', JSON.stringify(this.current));
@@ -221,7 +184,7 @@ const User = {
                         data: {
                             name: userData.name,
                             account_type: userData.accountType,
-                            location: userData.location || ''
+                            location: userData.location || 'Butuan City, Philippines'
                         }
                     }
                 };
@@ -239,7 +202,7 @@ const User = {
                             name: userData.name,
                             account_type: userData.accountType,
                             phone: userData.phone || '',
-                            location: userData.location || ''
+                            location: userData.location || 'Butuan City, Philippines'
                         }
                     }
                 };
@@ -259,9 +222,10 @@ const User = {
                 name: userData.name,
                 username: userData.username || '',
                 accountType: userData.accountType || 'breeder',
-                location: userData.location || ''
+                location: userData.location || 'Butuan City, Philippines'
             };
             sessionStorage.setItem('breedlink_pending_signup', JSON.stringify(pendingData));
+            localStorage.setItem('breedlink_pending_signup', JSON.stringify(pendingData)); // mirror so it survives page reload to verify-otp
 
             // If Supabase returned no session the user must verify OTP — redirect to verify page
             if (!data.session) {
@@ -271,7 +235,7 @@ const User = {
             const defaultContact = {
                 email: userData.email || '',
                 phone: userData.phone || '',
-                location: userData.location || ''
+                location: userData.location || 'Butuan City, Philippines'
             };
             
             const defaultStats = {
@@ -294,7 +258,7 @@ const User = {
                     tags: [],
                     contact: defaultContact,
                     stats: defaultStats,
-                    location: userData.location || ''
+                    location: userData.location || 'Butuan City, Philippines'
                 });
             
             this.current = {
@@ -308,17 +272,18 @@ const User = {
                 accountType: userData.accountType,
                 contact: defaultContact,
                 stats: defaultStats,
-                location: userData.location || ''
+                location: userData.location || 'Butuan City, Philippines'
             };
             
             // Store session tokens
             if (data.session) {
                 sessionStorage.setItem('breedlink_token', data.session.access_token);
                 if (data.session.refresh_token) {
-                    sessionStorage.setItem('breedlink_refresh_token', data.session.refresh_token); localStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
+                    sessionStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
                 }
-                // Profile created without OTP — clear pending data
+                // Profile created without OTP — clear pending data from both storages
                 sessionStorage.removeItem('breedlink_pending_signup');
+                localStorage.removeItem('breedlink_pending_signup');
             }
             sessionStorage.setItem('breedlink_user', JSON.stringify(this.current));
             return this.current;
@@ -342,7 +307,7 @@ const User = {
         try { await window.supabase.auth.signOut(); } catch(e) {}
         this.current = null;
         sessionStorage.removeItem('breedlink_token');
-        sessionStorage.removeItem('breedlink_refresh_token'); localStorage.removeItem('breedlink_refresh_token');
+        sessionStorage.removeItem('breedlink_refresh_token');
         sessionStorage.removeItem('breedlink_user');
         localStorage.removeItem('breedlink_remember');
         sessionStorage.clear();
@@ -374,7 +339,7 @@ const User = {
             // If token is expired, clear stale session data and treat as logged out
             if ((payload.exp * 1000) < Date.now()) {
                 sessionStorage.removeItem('breedlink_token');
-                sessionStorage.removeItem('breedlink_refresh_token'); localStorage.removeItem('breedlink_refresh_token');
+                sessionStorage.removeItem('breedlink_refresh_token');
                 sessionStorage.removeItem('breedlink_user');
                 return false;
             }
@@ -503,7 +468,7 @@ const User = {
         try {
             const { data, error } = await window.supabase
                 .from('profiles')
-                .select('id,name,profile_picture,cover_photo,bio,account_type,location,contact,tags,stats,username')
+                .select('*')
                 .eq('id', userId)
                 .single();
             
@@ -541,7 +506,7 @@ const User = {
         try {
             const { data, error } = await window.supabase
                 .from('notifications')
-                .select('id,user_id,type,message,read,created_at,data')
+                .select('*')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
                 .limit(limit);
@@ -784,7 +749,13 @@ async function handleLogin(event) {
         showToast(`Welcome back, ${user.name}! 🎉`);
         
         setTimeout(() => {
-            window.location.href = 'swipe.html';
+            const returnUrl = sessionStorage.getItem('breedlink_return_url');
+            if (returnUrl) {
+                sessionStorage.removeItem('breedlink_return_url');
+                window.location.href = returnUrl;
+            } else {
+                window.location.href = 'swipe.html';
+            }
         }, 800);
     } catch (error) {
         showToast(error.message, 'error');
@@ -1187,7 +1158,15 @@ window.handleLogin = async function(event) {
             localStorage.removeItem('breedlink_remember');
         }
         showToast('Welcome back, ' + user.name + '! 🎉');
-        setTimeout(() => { window.location.href = 'swipe.html'; }, 800);
+        setTimeout(() => {
+            const returnUrl = sessionStorage.getItem('breedlink_return_url');
+            if (returnUrl) {
+                sessionStorage.removeItem('breedlink_return_url');
+                window.location.href = returnUrl;
+            } else {
+                window.location.href = 'swipe.html';
+            }
+        }, 800);
     } catch (error) {
         const rawMsg = (error.message || '').toLowerCase();
         let friendlyMsg;
@@ -1269,7 +1248,7 @@ window.AccountSettings = {
         if (reAuthData?.session?.access_token) {
             sessionStorage.setItem('breedlink_token', reAuthData.session.access_token);
             if (reAuthData.session.refresh_token) {
-                sessionStorage.setItem('breedlink_refresh_token', reAuthData.session.refresh_token); localStorage.setItem('breedlink_refresh_token', reAuthData.session.refresh_token);
+                sessionStorage.setItem('breedlink_refresh_token', reAuthData.session.refresh_token);
             }
         }
 
@@ -1291,7 +1270,7 @@ window.AccountSettings = {
         try { await window.supabase.auth.signOut(); } catch(e) {}
         this.current = null;
         sessionStorage.removeItem('breedlink_token');
-        sessionStorage.removeItem('breedlink_refresh_token'); localStorage.removeItem('breedlink_refresh_token');
+        sessionStorage.removeItem('breedlink_refresh_token');
         sessionStorage.removeItem('breedlink_user');
         localStorage.removeItem('breedlink_remember');
         sessionStorage.clear();
