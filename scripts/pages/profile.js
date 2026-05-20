@@ -802,30 +802,61 @@ async function sharePost(postId) {
     const postLink = window.location.origin + '/pages/profile.html?post=' + postId;
     const post = posts.find(p => String(p.id) === String(postId));
 
-    // Increment share counter in DB (fire-and-forget — don't block the copy/share UX)
+    // Increment share counter in DB (fire-and-forget)
     if (post) {
         const newShares = (post.shares || 0) + 1;
         post.shares = newShares;
         updatePostPublic(postId, { shares: newShares }).catch(err => console.warn('sharePost counter error:', err));
-        // Update meta line in feed without full re-render
         const card = document.querySelector(`.post-card[data-post-id="${postId}"] .post-meta span`);
         if (card) card.textContent = `${post.likes} likes • ${(post.comments||[]).length} comments • ${newShares} share${newShares !== 1 ? 's' : ''}`;
     }
 
-    if (navigator.share) {
-        navigator.share({
-            title: 'BreedLink Post',
-            text: post?.text ? post.text.slice(0, 100) : 'Check out this post on BreedLink',
-            url: postLink
-        }).catch(() => {
-            navigator.clipboard.writeText(postLink).then(() => showToast('Link copied! 🔗'));
-        });
-    } else {
-        navigator.clipboard.writeText(postLink).then(
-            () => showToast('Link copied to clipboard! 🔗'),
-            () => showToast('Post link: ' + postLink)
-        );
+    // Determine whose profile to open
+    const ownerId = post?.user_id || currentUserId;
+
+    // If it's the current user's own post, scroll to it in the feed
+    if (ownerId === currentUserId) {
+        const postEl = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+        if (postEl) {
+            postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            postEl.style.outline = '2.5px solid var(--green-primary)';
+            setTimeout(() => { postEl.style.outline = ''; }, 1800);
+        }
+        // Also copy link
+        navigator.clipboard.writeText(postLink).catch(() => {});
+        showToast('Scrolled to post • Link copied 🔗');
+        return;
     }
+
+    // Open the breeder profile panel and scroll to the post
+    if (typeof openBreederProfile === 'function') {
+        try {
+            await openBreederProfile(ownerId);
+            // Switch to posts tab using internal _bp API, then scroll to post
+            setTimeout(() => {
+                // Use the posts tab button if available
+                const postsTabBtn = document.querySelector('button[data-tab="posts"]');
+                if (postsTabBtn) postsTabBtn.click();
+
+                // After tab renders, find and scroll to the specific post
+                setTimeout(() => {
+                    const postEl = document.querySelector(`[data-post="${postId}"]`);
+                    if (postEl) {
+                        postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        postEl.style.outline = '2.5px solid var(--green-primary)';
+                        postEl.style.transition = 'outline 0.3s';
+                        setTimeout(() => { postEl.style.outline = ''; }, 1800);
+                    }
+                }, 350);
+            }, 450);
+        } catch(e) {
+            console.warn('sharePost: openBreederProfile failed', e);
+        }
+    }
+
+    // Copy link as fallback
+    navigator.clipboard.writeText(postLink).catch(() => {});
+    showToast('Opening post • Link copied 🔗');
 }
 
 function editComment(postId, commentId, currentText) {
