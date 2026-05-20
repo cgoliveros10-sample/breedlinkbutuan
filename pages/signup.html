@@ -126,6 +126,9 @@
         <div class="step" id="step3">3</div>
       </div>
 
+      <!-- Single form wrapper so Chrome recognises password fields and stops warning -->
+      <form onsubmit="return false;" autocomplete="on" style="display:contents;">
+
       <!-- ── Step 1: Basic Info ── -->
       <div class="form-step active" id="formStep1">
         <div class="signup-header">
@@ -198,7 +201,7 @@
       </div>
 
       <!-- ── Step 3: Password + Terms ── -->
-      <form id="formStep3" class="form-step" onsubmit="return false;" autocomplete="on">
+      <div class="form-step" id="formStep3">
         <div class="signup-header">
           <h2>Secure Your Account</h2>
           <p>Almost there — set a strong password</p>
@@ -249,11 +252,13 @@
         <div class="login-link">
           Already have an account? <a href="login.html">Sign in</a>
         </div>
-      </form>
+      </div>
 
       <!-- Step 4 removed from flow — now a modal overlay below -->
 
       <!-- ── Success State ── -->
+      </form><!-- end signup form wrapper -->
+
       <div class="success-state" id="successState">
         <div class="success-icon">✓</div>
         <h3>Welcome Aboard!</h3>
