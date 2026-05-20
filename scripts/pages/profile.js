@@ -430,10 +430,14 @@ function updateProfileUI() {
     }
     
     const profileImg = document.getElementById('profileImg');
-    if (profileImg && profileData.profileImg) {
-        profileImg.src = profileData.profileImg;
+    if (profileImg) {
+        const avatarSrc = profileData.profileImg || defaultAvatar(profileData.name || 'User');
+        profileImg.src = avatarSrc;
+        profileImg.style.display = '';
         profileImg.onerror = function() {
-            this.src = defaultAvatar(profileData && profileData.name || 'User');
+            this.onerror = null;
+            this.src = defaultAvatar(profileData.name || 'User');
+            this.style.display = '';
         };
     }
     
@@ -1040,10 +1044,28 @@ async function saveAnimal() {
     showToast('Uploading animal information...');
     
     try {
-        let imageUrl = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400';
-        
-        if (animalImageInput && animalImageInput.files && animalImageInput.files[0]) {
-            imageUrl = await StorageAPI.uploadAnimalImage(animalImageInput.files[0]);
+        let imageUrl = null;
+
+        // Prefer cropped file, then raw input file, then pendingAnimalImages fallback
+        const _fileToUpload =
+            (window._croppedFiles && window._croppedFiles['animal']) ||
+            (animalImageInput && animalImageInput.files && animalImageInput.files[0]) ||
+            (pendingAnimalImages && pendingAnimalImages[0]) ||
+            null;
+
+        if (_fileToUpload) {
+            try {
+                imageUrl = await StorageAPI.uploadAnimalImage(_fileToUpload);
+            } catch (uploadErr) {
+                console.error('Animal image upload failed:', uploadErr);
+                showToast('Photo upload failed: ' + uploadErr.message, 'error');
+                // Don't proceed — user should know the photo didn't save
+                return;
+            }
+        }
+
+        if (!imageUrl) {
+            imageUrl = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400';
         }
         
         const uploadedDocuments = [];
