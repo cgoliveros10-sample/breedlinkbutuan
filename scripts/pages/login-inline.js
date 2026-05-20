@@ -15,18 +15,19 @@ var _fpEmail = '';
     var btn = document.getElementById('fpResendBtn2');
     _fpResendSeconds = 120;
     btn.disabled = true;
-    btn.textContent = 'Resend in 2:00';
+    btn.textContent = 'Resend in 2:00'; // show immediately
     if (_fpResendTimer) clearInterval(_fpResendTimer);
     _fpResendTimer = setInterval(function() {
       _fpResendSeconds--;
-      var m = Math.floor(_fpResendSeconds / 60);
-      var s = _fpResendSeconds % 60;
-      btn.textContent = 'Resend in ' + m + ':' + (s < 10 ? '0' : '') + s;
       if (_fpResendSeconds <= 0) {
         clearInterval(_fpResendTimer);
         btn.disabled = false;
         btn.textContent = 'Resend Code';
+        return;
       }
+      var m = Math.floor(_fpResendSeconds / 60);
+      var s = _fpResendSeconds % 60;
+      btn.textContent = 'Resend in ' + m + ':' + (s < 10 ? '0' : '') + s;
     }, 1000);
   }
 
