@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>My Profile | BreedLink</title>
+  
+  <link rel="stylesheet" href="../styles/shared/base.css">
+  <link rel="stylesheet" href="../styles/pages/profile.css"></head>
+<body>
+  <!-- Navigation -->
+  <header class="navigation" id="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo" onclick="window.location.href='../index.html'">
+          <img src="../assets/logo.png" alt="BreedLink">
+        </div>
+      </div>
+      <div class="nav-center">
+        <nav class="menu" id="navMenu">
+          <a href="../index.html" id="nav-home">Home</a>
+          <a href="about.html" id="nav-about">About</a>
+          <a href="swipe.html" id="nav-breeders">Breeders</a>
+        </nav>
+        <div class="mobile-nav-auth" id="mobileNavAuth" style="display:none;">
+          <a href="login.html" class="mobile-signin" id="mobileSignin">Sign In</a>
+          <a href="signup.html" class="mobile-signup" id="mobileSignup">Sign Up</a>
+        </div>
+      </div>
+      <div class="nav-right" id="navRight">
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="Toggle menu" style="display:none;">
+          <span></span><span></span><span></span>
+        </button>
+        <button class="message-btn" id="messageBtn" onclick="openMessenger()" title="Messages" style="display: none;">
+          💬
+          <span class="message-badge" id="messageBadge" style="display: none;">0</span>
+        </button>
+        <div class="profile-menu-container" id="profileMenuContainer" style="display: none;">
+          <button class="profile-btn" id="profileBtn" onclick="toggleProfileDropdown()">
+            <span class="default-avatar">👤</span>
+          </button>
+          <div class="profile-dropdown" id="profileDropdown">
+              <a href="profile.html" class="profile-dropdown-item"><span>👁️</span> View Profile</a>
+              <a href="#" class="profile-dropdown-item" onclick="event.preventDefault(); event.stopPropagation(); const dd=document.getElementById('profileDropdown'); if(dd) dd.classList.remove('active'); if(typeof enableEditMode==='function') enableEditMode();"><span>✏️</span> Customize Profile</a>
+              <button class="profile-dropdown-item" onclick="openSettingsPanel(); toggleProfileDropdown();"><span>⚙️</span> Account Settings</button>
+              <div class="profile-dropdown-divider"></div>
+              <button class="profile-dropdown-item logout" onclick="handleLogout()"><span>🚪</span> Logout</button>
+          </div>
+        </div>
+        <div class="guest-options" id="guestOptions">
+          <a href="login.html" class="guest-btn signin">Sign In</a>
+          <a href="signup.html" class="guest-btn signup">Sign Up</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Cover Photo -->
+    <div class="cover" id="coverPhoto" onclick="openCoverModal()">
+      <div class="cover-overlay">
+        <button class="cover-edit" type="button" onclick="openCoverModal(event)">
+          <span>📷</span> Change Cover
+        </button>
+      </div>
+    </div>
+
+    <!-- Profile Section -->
+    <div class="profile-section">
+      <div class="profile-img-container">
+        <img class="profile-img" id="profileImg" src="" alt="Profile" onerror="this.src=window.defaultAvatar('User')">
+        <div class="profile-img-overlay" onclick="openProfileModal()">
+          <span class="edit-profile-img">📷</span>
+        </div>
+      </div>
+      
+      <div class="profile-name" id="profileNameDisplay">
+        <span id="profileName">Breeder User</span>
+        <button class="edit-name-btn" onclick="editName()">✏️</button>
+      </div>
+
+      <!-- Tags -->
+      <div class="tags" id="tagsContainer"></div>
+
+      <!-- Bio Section -->
+      <div class="bio-section" id="bioSection">
+        <div class="bio-header">
+          <h3><span>📝</span> About Me</h3>
+          <button class="edit-bio-btn" onclick="editBio()">Edit</button>
+        </div>
+        <div class="bio-content" id="bioContent"></div>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="contact-info" id="contactInfo">
+        <div class="contact-item" id="contactEmail"><span>📧</span> <span>breeder@example.com</span></div>
+        <div class="contact-item" id="contactPhone"><span>📱</span> <span>+63 912 345 6789</span></div>
+        <div class="contact-item" id="contactLocation"><span>📍</span> <span>Butuan City, Philippines</span></div>
+        <button class="edit-contact-btn" onclick="openContactModal()" title="Edit contact info">✏️</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat-box" onclick="openFollowPanel('followers')">
+          <span class="stat-number" id="followersCount">0</span>
+          <span class="stat-label">Followers</span>
+        </div>
+        <div class="stat-box" onclick="openFollowPanel('following')">
+          <span class="stat-number" id="followingCount">0</span>
+          <span class="stat-label">Following</span>
+        </div>
+        <div class="stat-box" onclick="scrollToAnimals()">
+          <span class="stat-number" id="littersCount">0</span>
+          <span class="stat-label">Animals</span>
+        </div>
+        <div class="stat-box" onclick="showReviews()">
+          <span class="stat-number" id="reviewsCount">0</span>
+          <span class="stat-label">Reviews</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex;gap:8px;padding:0 16px 14px;flex-wrap:wrap;">
+        <button onclick="openSavedPostsPanel()" style="flex:1;padding:10px 16px;background:linear-gradient(135deg,var(--green-primary),var(--green-secondary));color:white;border:none;border-radius:50px;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 3px 10px rgba(46,107,78,0.3);transition:all .2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+          🔖 Saved Posts
+        </button>
+      </div>
+    </div>
+
+    <!-- Status/Post Input -->
+    <div class="status-box">
+      <input type="text" id="statusInput" placeholder="What's new with your breeding program?">
+      <div class="status-actions">
+        <button class="attach-img-btn" onclick="document.getElementById('postImageInput').click()" title="Attach images (up to 6)">📷</button>
+        <button class="add-btn" onclick="addPost()">➕</button>
+      </div>
+      <input type="file" id="postImageInput" accept="image/*" multiple style="display: none;">
+      <div id="postImagePreview" class="post-image-preview"></div>
+    </div>
+
+    <!-- Posts Container -->
+    <div id="postsContainer"></div>
+
+    <!-- Animals Section -->
+    <div class="animals-section" id="animalsSection">
+      <div class="animals-header">
+        <h3><span>🐾</span> My Breeding Animals</h3>
+        <button class="add-animal-btn" onclick="openAddAnimalModal()">
+          <span>➕</span> Add Animal
+        </button>
+      </div>
+      <div class="animals-grid" id="animalsGrid"></div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- MODALS -->
+  <!-- ============================================ -->
+
+  <!-- Cover Photo Modal -->
+  <div class="modal" id="coverModal">
+    <div class="modal-content upload-panel-wide">
+      <button class="modal-close" onclick="closeModal('coverModal')">×</button>
+      <h3>🖼️ Change Cover Photo</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin:-16px 0 14px;">Recommended: 1200×400px (3:1 ratio)</p>
+      <div class="upload-drop-zone" id="coverDropZone" onclick="document.getElementById('coverInput').click()">
+        <div id="coverPreviewWrap" class="upload-preview-wrap cover-preview-wrap">
+          <div class="upload-placeholder">
+            <div style="font-size:38px;margin-bottom:8px;">🖼️</div>
+            <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">Drop image here or click to browse</div>
+            <div style="font-size:12px;color:var(--text-muted);">JPG, PNG, WEBP • Max 10MB</div>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="coverInput" accept="image/*" style="display:none;" onchange="openCropModal(this,'cover','16:5')">
+      <div id="coverCropInfo" class="upload-crop-info" style="display:none;">✂️ Image will be cropped to 16:5 banner ratio</div>
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveCover()">💾 Save Cover</button>
+        <button class="cancel-btn" onclick="closeModal('coverModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Photo Modal -->
+  <div class="modal" id="profileModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('profileModal')">×</button>
+      <h3>👤 Change Profile Photo</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin:-16px 0 14px;">Recommended: square image (1:1 ratio)</p>
+      <div class="upload-drop-zone" id="profileDropZone" onclick="document.getElementById('profileInput').click()">
+        <div id="profilePreviewWrap" class="upload-preview-wrap profile-preview-wrap">
+          <div class="upload-placeholder">
+            <div style="font-size:44px;margin-bottom:8px;">👤</div>
+            <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">Drop image here or click to browse</div>
+            <div style="font-size:12px;color:var(--text-muted);">JPG, PNG, WEBP • Max 10MB</div>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="profileInput" accept="image/*" style="display:none;" onchange="openCropModal(this,'profile','1:1')">
+      <div id="profileCropInfo" class="upload-crop-info" style="display:none;">✂️ Image will be cropped to 1:1 square</div>
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveProfile()">💾 Save Photo</button>
+        <button class="cancel-btn" onclick="closeModal('profileModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Name Modal -->
+  <div class="modal" id="nameModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('nameModal')">×</button>
+      <h3>✏️ Edit Profile Name</h3>
+      <input type="text" id="nameInput" placeholder="Enter your name">
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveName()">💾 Save Name</button>
+        <button class="cancel-btn" onclick="closeModal('nameModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Bio Modal -->
+  <div class="modal" id="bioModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('bioModal')">×</button>
+      <h3>📝 Edit Bio</h3>
+      <textarea id="bioInput" rows="6" placeholder="Tell us about yourself..." style="width:100%; resize: vertical;"></textarea>
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveBio()">💾 Save Bio</button>
+        <button class="cancel-btn" onclick="closeModal('bioModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Tag Modal -->
+  <div class="modal" id="tagModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('tagModal')">×</button>
+      <h3>🏷️ Add New Tag</h3>
+      <input type="text" id="tagInput" placeholder="Enter tag name (e.g., 🐕 Golden Retriever)">
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveTag()">➕ Add Tag</button>
+        <button class="cancel-btn" onclick="closeModal('tagModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Animal Modal -->
+  <div class="modal" id="animalModal">
+    <div class="modal-content" style="max-width: 550px;">
+      <button class="modal-close" onclick="closeModal('animalModal')">×</button>
+      <h3>🐾 Add New Animal</h3>
+      
+      <!-- Animal Photo -->
+      <div class="upload-drop-zone animal-upload-zone" id="animalDropZone" onclick="document.getElementById('animalInput').click()">
+        <div id="animalPreviewWrap" class="upload-preview-wrap animal-preview-wrap">
+          <div id="animalPreview" class="animal-preview-inner">
+            <div class="upload-placeholder">
+              <div style="font-size:36px;margin-bottom:6px;">🐾</div>
+              <div style="font-weight:600;color:var(--text-primary);font-size:13px;margin-bottom:3px;">Upload animal photo</div>
+              <div style="font-size:11px;color:var(--text-muted);">JPG, PNG, WEBP • Max 10MB</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="animalInput" accept="image/*" style="display:none;" onchange="openCropModal(this,'animal','4:3')">
+      <div id="animalCropInfo" class="upload-crop-info" style="display:none;">✂️ Image will be cropped to 4:3 ratio</div>
+      
+      <!-- Basic Info -->
+      <input type="text" id="animalName" placeholder="Animal Name *">
+      <input type="text" id="animalBreed" placeholder="Breed *">
+      
+      <select id="animalCategory" onchange="updateAnimalTypeOptions()" style="width:100%;padding:12px 14px;border:1.5px solid var(--border-light);border-radius:12px;font-size:14px;outline:none;background:white;color:var(--text-primary);margin-bottom:8px;">
+        <option value="">Select Category (optional)</option>
+        <option value="Pet">🐕 Pet</option>
+        <option value="Livestock">🐄 Livestock</option>
+      </select>
+      
+      <div id="animalTypeWrapper">
+        <select id="animalTypeSelect" style="width:100%;padding:12px 14px;border:1.5px solid var(--border-light);border-radius:12px;font-size:14px;outline:none;background:white;color:var(--text-primary);margin-bottom:4px;">
+          <option value="">Select Type (optional)</option>
+          <optgroup label="🐕 Pets" id="animalPetTypeGroup">
+            <option value="Dog">🐕 Dog</option>
+            <option value="Cat">🐈 Cat</option>
+            <option value="Bird">🐦 Bird</option>
+            <option value="Rabbit">🐇 Rabbit</option>
+            <option value="Mouse">🐭 Mouse</option>
+            <option value="Hamster">🐹 Hamster</option>
+            <option value="Fish">🐠 Fish</option>
+            <option value="Turtle">🐢 Turtle</option>
+          </optgroup>
+          <optgroup label="🐄 Livestock" id="animalLivestockTypeGroup">
+            <option value="Pig">🐖 Pig</option>
+            <option value="Cow">🐄 Cow</option>
+            <option value="Goat">🐐 Goat</option>
+            <option value="Horse">🐎 Horse</option>
+            <option value="Chicken">🐓 Chicken</option>
+            <option value="Duck">🦆 Duck</option>
+            <option value="Sheep">🐑 Sheep</option>
+            <option value="Carabao">🐃 Carabao</option>
+          </optgroup>
+          <option value="Other">🐾 Other</option>
+        </select>
+        <div id="animalTypeOtherWrapper" style="display:none;margin-bottom:4px;">
+          <input type="text" id="animalTypeOther" placeholder="Specify type (e.g. Alpaca, Pigeon...)" 
+            style="width:100%;padding:12px 14px;border:1.5px solid var(--border-light);border-radius:12px;font-size:14px;outline:none;box-sizing:border-box;">
+        </div>
+      </div>
+      
+      <select id="animalGender">
+        <option value="">Select Gender</option>
+        <option value="Male">♂️ Male</option>
+        <option value="Female">♀️ Female</option>
+      </select>
+      
+      <input type="text" id="animalAge" placeholder="Age (e.g., 2 years)">
+      <select id="animalStatus" style="width:100%;padding:12px 14px;border:1.5px solid var(--border-light);border-radius:12px;font-size:14px;outline:none;background:white;color:var(--text-primary);margin-bottom:8px;">
+        <option value="">Select Status</option>
+        <option value="Available for Stud">🐾 Available for Stud</option>
+        <option value="Available for Breeding">💕 Available for Breeding</option>
+        <option value="Puppies/Kittens Available">🍼 Puppies/Kittens Available</option>
+        <option value="Offspring Available">🐣 Offspring Available</option>
+        <option value="Not Available">🚫 Not Available</option>
+        <option value="Retired">🏠 Retired</option>
+      </select>
+
+      <div style="display:flex;gap:16px;margin-bottom:8px;padding:10px 14px;background:#f9fafb;border-radius:12px;border:1.5px solid var(--border-light);">
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;font-weight:500;">
+          <input type="checkbox" id="animalVaccinated" style="width:16px;height:16px;accent-color:var(--green-primary);">
+          💉 Vaccinated
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;font-weight:500;">
+          <input type="checkbox" id="animalDewormed" style="width:16px;height:16px;accent-color:var(--green-primary);">
+          💊 Dewormed
+        </label>
+      </div>
+
+      <textarea id="animalDescription" rows="3" placeholder="Description (optional)" style="width:100%; resize: vertical;"></textarea>
+      
+      <!-- Documents Upload -->
+      <div class="document-upload">
+        <label>📋 Health Documents & Certificates</label>
+        <div class="document-preview" id="animalDocumentsPreview" onclick="document.getElementById('animalDocuments').click()">
+          <span>📄 Click to upload documents (PDF, Images)</span>
+        </div>
+        <input type="file" id="animalDocuments" accept="image/*,application/pdf" multiple style="display: none;" onchange="previewAnimalDocuments(this, 'animalDocumentsPreview')">
+      </div>
+      
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveAnimal()">💾 Save Animal</button>
+        <button class="cancel-btn" onclick="closeModal('animalModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Animal Modal -->
+  <div class="modal" id="animalDetailModal">
+    <div class="modal-content" style="max-width: 600px;">
+      <button class="modal-close" onclick="closeModal('animalDetailModal')">×</button>
+      <h3 id="animalDetailTitle">Animal Details</h3>
+      <div id="animalDetailContent"></div>
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveAnimalDetails()">💾 Save Changes</button>
+        <button class="cancel-btn" onclick="closeModal('animalDetailModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Contact Modal -->
+  <div class="modal" id="contactModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('contactModal')">×</button>
+      <h3>✏️ Edit Contact Information</h3>
+      <input type="email" id="contactEmailInput" placeholder="Email">
+      <input type="tel" id="contactPhoneInput" placeholder="Phone">
+      <input type="text" id="contactLocationInput" placeholder="Location">
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveContact()">💾 Save</button>
+        <button class="cancel-btn" onclick="closeModal('contactModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Post Menu Modal -->
+  <div class="modal" id="postMenuModal">
+    <div class="modal-content" style="max-width: 300px;">
+      <button class="modal-close" onclick="closeModal('postMenuModal')">×</button>
+      <h3>Post Options</h3>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button class="btn btn-secondary" onclick="editCurrentPost()">✏️ Edit Post</button>
+        <button class="btn btn-secondary" onclick="deleteCurrentPost()">🗑️ Delete Post</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Post Modal -->
+  <div class="modal" id="editPostModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('editPostModal')">×</button>
+      <h3>✏️ Edit Post</h3>
+      <textarea id="editPostText" rows="4" placeholder="What's on your mind?" style="width:100%; margin-bottom: 16px; resize: vertical;"></textarea>
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="savePostEdit()">💾 Save</button>
+        <button class="cancel-btn" onclick="closeModal('editPostModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Comment Modal -->
+  <div class="modal" id="commentEditModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('commentEditModal')">×</button>
+      <h3>✏️ Edit Comment</h3>
+      <textarea id="editCommentText" rows="3" placeholder="Edit your comment..." style="width:100%; margin-bottom: 16px; resize: vertical;"></textarea>
+      <div class="modal-buttons">
+        <button class="save-btn" onclick="saveCommentEdit()">💾 Save</button>
+        <button class="cancel-btn" onclick="closeModal('commentEditModal')">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div class="modal" id="lightboxModal">
+    <div class="modal-content lightbox-content">
+      <button class="modal-close" onclick="closeModal('lightboxModal')">×</button>
+      <img id="lightboxImg" src="" alt="Full size">
+    </div>
+  </div>
+
+  <!-- View Animal Modal -->
+  <div class="modal" id="viewAnimalModal">
+    <div class="modal-content" style="max-width:560px;">
+      <button class="modal-close" onclick="closeModal('viewAnimalModal')">×</button>
+      <h3>🐾 Animal Profile</h3>
+      <div id="viewAnimalContent"></div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SCRIPTS -->
+  <!-- ============================================ -->
+<!-- Scripts - Load in THIS EXACT ORDER -->
+  <!-- Saved Posts Panel -->
+  <div id="savedPostsPanel" style="display:none;position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:env(safe-area-inset-top,12px) 10px 60px;box-sizing:border-box;overflow-y:auto;">
+    <div onclick="closeSavedPostsPanel()" style="position:fixed;inset:0;z-index:0;"></div>
+    <div style="max-width:500px;width:100%;background:#fff;border-radius:22px;position:relative;margin:20px auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);z-index:1;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px;border-bottom:1px solid var(--border-light);">
+        <h3 style="margin:0;font-size:17px;font-weight:800;color:var(--text-primary);">🔖 Saved Posts</h3>
+        <button onclick="closeSavedPostsPanel()" style="background:#f3f4f6;border:none;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:center;line-height:1;">×</button>
+      </div>
+      <div id="savedPostsList" style="padding:16px;max-height:70vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+        <div style="text-align:center;padding:40px 0;color:var(--text-muted);">
+          <div style="font-size:36px;margin-bottom:10px;">🔖</div>
+          <p>No saved posts yet</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Post Detail Modal (Facebook-style) -->
+  <div id="postDetailModal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:0;">
+    <div id="postDetailInner" style="display:flex;flex-direction:row;width:96vw;max-width:960px;max-height:94vh;background:var(--surface-white);border-radius:20px;overflow:hidden;position:relative;box-shadow:0 30px 80px rgba(0,0,0,0.4);">
+      <button onclick="closePostDetail()" style="position:absolute;top:10px;right:10px;z-index:10;background:rgba(0,0,0,0.55);border:none;color:white;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">×</button>
+      <!-- Left: media -->
+      <div id="postDetailMedia" style="flex:1;min-width:0;background:#000;display:flex;align-items:center;justify-content:center;position:relative;max-height:94vh;"></div>
+      <!-- Right: info + comments -->
+      <div id="postDetailSide" style="width:360px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid var(--border-light);max-height:94vh;overflow:hidden;"></div>
+    </div>
+  </div>
+  <style>
+  @media (max-width: 640px) {
+    #postDetailInner { flex-direction: column !important; width: 100vw !important; max-width: 100vw !important; max-height: 100dvh !important; border-radius: 0 !important; height: 100dvh; }
+    #postDetailMedia { max-height: 42vh !important; flex: 0 0 42vh !important; }
+    #postDetailSide  { width: 100% !important; flex: 1 !important; max-height: none !important; border-left: none !important; border-top: 1px solid var(--border-light); }
+    #postDetailModal { padding: 0 !important; align-items: flex-start !important; }
+  }
+  </style>
+
+
+  <script src="../scripts/shared/db.js"></script>
+
+<script src="../scripts/shared/core.js"></script>
+<script src="../scripts/shared/search.js"></script>
+<script src="../scripts/shared/auth.js"></script>
+<script src="../scripts/shared/upload.js"></script>
+<script src="../scripts/pages/profile.js"></script>
+<script src="../scripts/shared/breeder-profile.js"></script>
+<script src="../scripts/shared/msgs-loader.js"></script>
+
+<script src="../scripts/shared/settings.js"></script>
+
+<!-- Owner Profile Panel (shared with swipe page) -->
+<div id="ownerProfileModal"
+     style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:env(safe-area-inset-top,12px) 10px env(safe-area-inset-bottom,12px);box-sizing:border-box;">
+  <div onclick="closeBreederProfile()" style="position:absolute;inset:0;z-index:0;"></div>
+  <div style="max-width:620px;width:100%;max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);border-radius:22px;position:relative;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.35);z-index:1;display:flex;flex-direction:column;">
+    <!-- Close button — now rendered inside the card by _bpDraw(); kept hidden for legacy JS refs -->
+    <button onclick="closeBreederProfile()"
+      id="breederProfileCloseBtn"
+      style="display:none;position:absolute;top:-9999px;pointer-events:none;visibility:hidden;">×</button>
+    <!-- Scrollable body -->
+    <div style="background:#ffffff;border-radius:22px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;flex:1;min-height:0;">
+      <div id="ownerProfileBody" style="border-radius:22px;overflow:hidden;min-width:0;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Followers / Following Panel -->
+<div id="followPanelOverlay" style="display:none;position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:12px;">
+  <div onclick="closeFollowPanel()" style="position:absolute;inset:0;z-index:0;"></div>
+  <div style="max-width:420px;width:100%;max-height:82vh;background:#fff;border-radius:22px;position:relative;z-index:1;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;overflow:hidden;">
+    <!-- Close button — top-right corner, always accessible -->
+    <button onclick="closeFollowPanel()" style="position:absolute;top:12px;right:12px;z-index:10;background:#f3f4f6;border:none;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;color:#6b7280;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;box-shadow:0 1px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#fee2e2';this.style.color='#ef4444';" onmouseout="this.style.background='#f3f4f6';this.style.color='#6b7280';">×</button>
+    <!-- Header -->
+    <div style="padding:16px 18px 12px;border-bottom:1px solid #f3f4f6;flex-shrink:0;">
+      <div style="display:flex;gap:4px;background:#f3f4f6;border-radius:12px;padding:4px;padding-right:44px;">
+        <button id="followTabFollowers" onclick="switchFollowTab('followers')"
+          style="flex:1;padding:8px 10px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:var(--green-primary);box-shadow:0 1px 4px rgba(0,0,0,0.1);transition:all .2s;">
+          👥 Followers
+        </button>
+        <button id="followTabFollowing" onclick="switchFollowTab('following')"
+          style="flex:1;padding:8px 10px;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#6b7280;transition:all .2s;">
+          ➕ Following
+        </button>
+      </div>
+    </div>
+    <p id="followPanelCount" style="margin:8px 18px 4px;font-size:12px;color:#9ca3af;flex-shrink:0;"></p>
+    <!-- List -->
+    <div id="followPanelList" style="overflow-y:auto;padding:8px 14px 20px;flex:1;-webkit-overflow-scrolling:touch;">
+      <div style="text-align:center;padding:40px 0;color:#9ca3af;">
+        <div style="font-size:28px;margin-bottom:8px;">👥</div>
+        <p>Loading…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- ====== IMAGE CROP MODAL ====== -->
+  <div id="cropModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;padding:12px;box-sizing:border-box;">
+    <div style="background:#1a1a1a;border-radius:20px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.6);">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #333;flex-shrink:0;">
+        <h3 style="margin:0;color:#fff;font-size:16px;font-weight:700;">✂️ Crop Image</h3>
+        <button id="cropCancelBtn" style="background:#333;border:none;color:#aaa;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">×</button>
+      </div>
+      <!-- Canvas area -->
+      <div style="flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:16px;min-height:0;position:relative;background:#111;">
+        <div id="cropContainer" style="position:relative;display:inline-block;cursor:crosshair;user-select:none;touch-action:none;">
+          <img id="cropSourceImg" style="display:block;max-width:100%;max-height:52vh;object-fit:contain;" draggable="false">
+          <div id="cropOverlay" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);pointer-events:none;"></div>
+          <div id="cropBox" style="position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,0.5);cursor:move;box-sizing:border-box;">
+            <!-- Corner handles -->
+            <div class="crop-handle" data-corner="tl" style="position:absolute;top:-5px;left:-5px;width:12px;height:12px;background:#fff;border-radius:2px;cursor:nw-resize;"></div>
+            <div class="crop-handle" data-corner="tr" style="position:absolute;top:-5px;right:-5px;width:12px;height:12px;background:#fff;border-radius:2px;cursor:ne-resize;"></div>
+            <div class="crop-handle" data-corner="bl" style="position:absolute;bottom:-5px;left:-5px;width:12px;height:12px;background:#fff;border-radius:2px;cursor:sw-resize;"></div>
+            <div class="crop-handle" data-corner="br" style="position:absolute;bottom:-5px;right:-5px;width:12px;height:12px;background:#fff;border-radius:2px;cursor:se-resize;"></div>
+            <!-- Rule-of-thirds grid -->
+            <div style="position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;pointer-events:none;">
+              <div style="border-right:1px solid rgba(255,255,255,0.25);border-bottom:1px solid rgba(255,255,255,0.25);"></div>
+              <div style="border-right:1px solid rgba(255,255,255,0.25);border-bottom:1px solid rgba(255,255,255,0.25);"></div>
+              <div style="border-bottom:1px solid rgba(255,255,255,0.25);"></div>
+              <div style="border-right:1px solid rgba(255,255,255,0.25);border-bottom:1px solid rgba(255,255,255,0.25);"></div>
+              <div style="border-right:1px solid rgba(255,255,255,0.25);border-bottom:1px solid rgba(255,255,255,0.25);"></div>
+              <div style="border-bottom:1px solid rgba(255,255,255,0.25);"></div>
+              <div style="border-right:1px solid rgba(255,255,255,0.25);"></div>
+              <div style="border-right:1px solid rgba(255,255,255,0.25);"></div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Ratio pills -->
+      <div style="padding:10px 16px;display:flex;gap:8px;align-items:center;flex-shrink:0;background:#1a1a1a;border-top:1px solid #2a2a2a;flex-wrap:wrap;">
+        <span style="font-size:11px;color:#888;font-weight:600;margin-right:4px;">RATIO</span>
+        <button class="crop-ratio-btn active" data-ratio="free" style="background:#333;border:1px solid #555;color:#ddd;border-radius:50px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .2s;">Free</button>
+        <button class="crop-ratio-btn" data-ratio="1:1"   style="background:transparent;border:1px solid #444;color:#888;border-radius:50px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .2s;">1:1</button>
+        <button class="crop-ratio-btn" data-ratio="4:3"   style="background:transparent;border:1px solid #444;color:#888;border-radius:50px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .2s;">4:3</button>
+        <button class="crop-ratio-btn" data-ratio="16:9"  style="background:transparent;border:1px solid #444;color:#888;border-radius:50px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .2s;">16:9</button>
+        <button class="crop-ratio-btn" data-ratio="16:5"  style="background:transparent;border:1px solid #444;color:#888;border-radius:50px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .2s;">Banner</button>
+        <button id="cropResetBtn" style="margin-left:auto;background:transparent;border:1px solid #444;color:#888;border-radius:50px;padding:4px 10px;font-size:11px;cursor:pointer;">↺ Reset</button>
+      </div>
+      <!-- Footer -->
+      <div style="display:flex;gap:10px;padding:14px 20px;border-top:1px solid #2a2a2a;flex-shrink:0;">
+        <button id="cropSkipBtn" style="flex:1;padding:11px;background:#2a2a2a;color:#aaa;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='#2a2a2a'">Skip Crop</button>
+        <button id="cropApplyBtn" style="flex:2;padding:11px;background:var(--green-primary);color:white;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✂️ Apply Crop</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+  /* ── Upload Panel Styles ─────────────────────────── */
+  .upload-panel-wide .modal-content,
+  .modal-content.upload-panel-wide { max-width: 600px; }
+
+  .upload-drop-zone {
+    width: 100%;
+    border: 2.5px dashed var(--border-light);
+    border-radius: 16px;
+    margin-bottom: 14px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color .25s, background .25s;
+    background: var(--bg-secondary);
+  }
+  .upload-drop-zone:hover {
+    border-color: var(--green-primary);
+    background: var(--green-light);
+  }
+  .upload-drop-zone.drag-over {
+    border-color: var(--green-primary);
+    background: var(--green-light);
+  }
+
+  /* Cover — wide banner shape */
+  .cover-preview-wrap {
+    width: 100%;
+    aspect-ratio: 16 / 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+    min-height: 120px;
+    max-height: 200px;
+  }
+
+  /* Profile — square */
+  .profile-preview-wrap {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 220px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* Animal — 4:3 */
+  .animal-upload-zone { margin-bottom: 12px; }
+  .animal-preview-wrap {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+    max-height: 240px;
+  }
+  .animal-preview-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .upload-placeholder {
+    text-align: center;
+    padding: 18px 12px;
+    pointer-events: none;
+  }
+
+  .upload-crop-info {
+    font-size: 12px;
+    color: var(--green-primary);
+    font-weight: 600;
+    margin: -8px 0 10px;
+    text-align: center;
+  }
+
+  /* View animal modal improvements */
+  #viewAnimalModal .modal-content { max-width: 560px; }
+  .view-animal-image-wrap {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #111;
+    margin-bottom: 16px;
+  }
+  .view-animal-image-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  </style>
+
+</body>
+</html>
