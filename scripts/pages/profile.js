@@ -206,7 +206,7 @@ async function loadProfile() {
     try {
         const { data: profile, error } = await window.supabase
             .from('profiles')
-            .select('id,name,profile_picture,cover_photo,bio,account_type,is_verified,location,contact,tags,stats,username')
+            .select('*')
             .eq('id', user.id)
             .single();
         
@@ -278,7 +278,6 @@ function updateContactDOM() {
 }
 
 async function loadPosts() {
-    if (!currentUserId) return;
     try {
         const { data, error } = await window.supabase
             .from('posts')
@@ -316,7 +315,6 @@ async function loadPosts() {
             likes: post.likes || 0,
             liked: likedPostIds.has(String(post.id)),
             saved: savedPostIds.has(String(post.id)),
-            shares: post.shares || 0,
             comments: post.comments || [],
             created_at: post.created_at,
             author: post.profiles?.name || profileData.name,
@@ -332,27 +330,13 @@ async function loadPosts() {
 }
 
 async function loadAnimals() {
-    // If currentUserId is not yet set (e.g. auth race condition on first load),
-    // try to resolve it from the session before giving up.
-    if (!currentUserId) {
-        try {
-            const freshUser = await User.getFreshUser();
-            if (freshUser && freshUser.id) {
-                currentUserId = freshUser.id;
-            }
-        } catch (_) {}
-    }
-    if (!currentUserId) return;
     try {
-        console.log('[loadAnimals] Querying for user_id:', currentUserId);
         const { data, error } = await window.supabase
             .from('animals')
-            .select('id,name,breed,species,image_url,status,description,age,gender,color,user_id,created_at,updated_at,price,image_urls,video_url,health_certificates,health_documents,genetic_tests,is_vaccinated,is_dewormed,category,type')
+            .select('*')
             .eq('user_id', currentUserId)
             .order('created_at', { ascending: false });
         
-        console.log('[loadAnimals] Result - data:', data, '| error:', error);
-
         if (error) throw error;
         
         animals = data || [];
@@ -430,14 +414,10 @@ function updateProfileUI() {
     }
     
     const profileImg = document.getElementById('profileImg');
-    if (profileImg) {
-        const avatarSrc = profileData.profileImg || defaultAvatar(profileData.name || 'User');
-        profileImg.src = avatarSrc;
-        profileImg.style.display = '';
+    if (profileImg && profileData.profileImg) {
+        profileImg.src = profileData.profileImg;
         profileImg.onerror = function() {
-            this.onerror = null;
-            this.src = defaultAvatar(profileData.name || 'User');
-            this.style.display = '';
+            this.src = defaultAvatar(profileData && profileData.name || 'User');
         };
     }
     
@@ -503,7 +483,7 @@ function renderPosts() {
             ${post.text ? `<div class="post-text" style="cursor:pointer;" onclick="openPostDetail(${post.id})">${escapeHtml(post.text)}</div>` : ''}
             ${imagesHtml}
             <div class="post-meta">
-                <span>${post.likes} likes • ${post.comments?.length || 0} comments${post.shares ? ` • <span data-share-count="${post.id}">${post.shares}</span> shares` : ` • <span data-share-count="${post.id}" style="display:none">0</span> shares`}</span>
+                <span>${post.likes} likes • ${post.comments?.length || 0} comments</span>
                 <span style="font-size:11px;color:var(--text-muted);cursor:pointer;" onclick="openPostDetail(${post.id})">View all comments</span>
             </div>
             <div class="post-actions">
@@ -578,15 +558,9 @@ async function addPost() {
             // Upload all images
             const imageUrls = [];
             for (const item of pendingPostImages) {
-                // Use the original File object directly — avoids fetch(dataUrl) failures
-                // and preserves correct MIME type for the upload validator.
-                let file = item.file;
-                if (!file) {
-                    // Fallback: reconstruct from dataUrl only if file ref is missing
-                    const blob = await (await fetch(item.dataUrl)).blob();
-                    const ext = (item.dataUrl.split(';')[0].split('/')[1]) || 'jpg';
-                    file = new File([blob], `post-image-${Date.now()}.${ext}`, { type: blob.type || 'image/jpeg' });
-                }
+                const blob = await (await fetch(item.dataUrl)).blob();
+                const ext = item.file?.name?.split('.').pop() || 'jpg';
+                const file = new File([blob], `post-image-${Date.now()}.${ext}`, { type: item.file?.type || 'image/jpeg' });
                 const url = await StorageAPI.uploadPostImage(file);
                 if (url) imageUrls.push(url);
             }
@@ -655,22 +629,21 @@ async function deletePostFromSupabase(postId) {
 }
 
 async function toggleLike(postId) {
-    if (!currentUserId) { showToast('Please sign in to like posts', 'error'); return; }
     const post = posts.find(p => p.id === postId);
     if (!post) return;
     try {
         if (post.liked) {
-            // Unlike: remove from likes table then decrement via RPC (atomic, no race condition)
+            // Unlike: remove from likes table
             await window.supabase
                 .from('likes')
                 .delete()
                 .eq('user_id', currentUserId)
                 .eq('post_id', postId);
-            await window.supabase.rpc('decrement_post_likes', { post_id: postId });
+            await updatePostPublic(postId, { likes: Math.max(0, (post.likes || 1) - 1) });
             post.liked = false;
             post.likes = Math.max(0, (post.likes || 1) - 1);
         } else {
-            // Like: insert (UNIQUE constraint blocks duplicates) then increment via RPC
+            // Like: insert (UNIQUE constraint blocks duplicates)
             const { error } = await window.supabase
                 .from('likes')
                 .insert({ user_id: currentUserId, post_id: postId });
@@ -678,7 +651,7 @@ async function toggleLike(postId) {
                 if (error.code === '23505') { post.liked = true; renderPosts(); return; }
                 throw error;
             }
-            await window.supabase.rpc('increment_post_likes', { post_id: postId });
+            await updatePostPublic(postId, { likes: (post.likes || 0) + 1 });
             post.liked = true;
             post.likes = (post.likes || 0) + 1;
         }
@@ -719,9 +692,6 @@ async function toggleSave(postId) {
 }
 
 async function addComment(postId, overrideText) {
-    const user = User.getUser();
-    if (!user || !user.id) { showToast('Please sign in to comment', 'error'); return; }
-
     const input = document.getElementById(`comment-input-${postId}`);
     const text = overrideText || (input ? input.value.trim() : '');
     
@@ -808,122 +778,21 @@ function focusComment(postId) {
     if (input) input.focus();
 }
 
-async function sharePost(postId) {
-    const postLink = window.location.origin + '/pages/profile.html?post=' + postId;
-
-    // Clipboard helpers — work without HTTPS focus
-    function _copyLink(text) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            return navigator.clipboard.writeText(text).catch(() => _fallbackCopy(text));
-        }
-        return Promise.resolve(_fallbackCopy(text));
-    }
-    function _fallbackCopy(text) {
-        try {
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
-            document.body.appendChild(ta);
-            ta.focus(); ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-        } catch(_) {}
-    }
-
-    // Try to find the post locally first; if not found (e.g. saved post from another
-    // user, or post opened via breeder panel), fetch just enough from the DB.
-    let post = posts.find(p => String(p.id) === String(postId));
-    if (!post) {
-        try {
-            const { data } = await window.supabase
-                .from('posts')
-                .select('id,user_id,text,likes,shares,comments,created_at')
-                .eq('id', postId)
-                .single();
-            if (data) post = data;
-        } catch(e) {
-            console.warn('sharePost: could not fetch post from DB', e);
-        }
-    }
-
-    // Increment share counter in DB (fire-and-forget)
-    if (post) {
-        const newShares = (post.shares || 0) + 1;
-        post.shares = newShares;
-        window.supabase.from('posts').update({ shares: newShares }).eq('id', postId)
-            .catch(err => console.warn('sharePost counter error:', err));
-
-        // Update every share-count span rendered for this post (feed, saved panel, breeder panel)
-        document.querySelectorAll(`[data-share-count="${postId}"]`).forEach(el => {
-            el.textContent = newShares;
+function sharePost(postId) {
+    const shareUrl = window.location.origin + window.location.pathname + '?post=' + postId;
+    if (navigator.share) {
+        navigator.share({ title: 'BreedLink Post', url: shareUrl }).then(() => {}, () => {
+            navigator.clipboard.writeText(shareUrl).then(
+                () => showToast('Link copied! 🔗'),
+                () => showToast('Post link: ' + shareUrl)
+            );
         });
-        // Also update old-style feed meta span
-        const card = document.querySelector(`.post-card[data-post-id="${postId}"] .post-meta span`);
-        if (card) card.textContent = `${post.likes} likes • ${(post.comments||[]).length} comments • ${newShares} share${newShares !== 1 ? 's' : ''}`;
+    } else {
+        navigator.clipboard.writeText(shareUrl).then(
+            () => showToast('Link copied to clipboard! 🔗'),
+            () => showToast('Post link: ' + shareUrl)
+        );
     }
-
-    // Determine ownership — now always reliable because we fetched from DB above
-    const ownerId = post?.user_id || null;
-
-    // ── Own post: scroll to it in the feed ──────────────────────────────────
-    if (ownerId && String(ownerId) === String(currentUserId)) {
-        const postEl = document.querySelector(`.post-card[data-post-id="${postId}"]`);
-        if (postEl) {
-            postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            postEl.style.transition = 'outline 0.2s, box-shadow 0.2s';
-            postEl.style.outline = '2.5px solid var(--green-primary)';
-            postEl.style.boxShadow = '0 0 0 4px rgba(76,175,80,0.18)';
-            setTimeout(() => { postEl.style.outline = ''; postEl.style.boxShadow = ''; }, 1800);
-        }
-        _copyLink(postLink);
-        showToast('Scrolled to post \u2022 Link copied \uD83D\uDD17');
-        return;
-    }
-
-    // ── Another user's post: open their breeder profile panel ───────────────
-    if (ownerId && typeof openBreederProfile === 'function') {
-        try {
-            await openBreederProfile(ownerId);
-
-            // Switch to Posts tab if needed, then scroll to the specific post
-            setTimeout(() => {
-                const postsTabBtn = document.querySelector('button[data-tab="posts"]');
-                if (postsTabBtn) postsTabBtn.click();
-
-                setTimeout(() => {
-                    // breeder-profile.js uses data-post attribute; fall back to data-post-id
-                    const postEl =
-                        document.querySelector(`[data-post="${postId}"]`) ||
-                        document.querySelector(`[data-post-id="${postId}"]`);
-                    if (postEl) {
-                        const body = document.getElementById('ownerProfileBody');
-                        const scrollContainer = body ? body.parentElement : null;
-                        if (scrollContainer) {
-                            const containerTop = scrollContainer.getBoundingClientRect().top;
-                            const postTop = postEl.getBoundingClientRect().top;
-                            const offset = postTop - containerTop + scrollContainer.scrollTop - 60;
-                            scrollContainer.scrollTo({ top: offset, behavior: 'smooth' });
-                        } else {
-                            postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                        postEl.style.transition = 'outline 0.2s, box-shadow 0.2s';
-                        postEl.style.outline = '2.5px solid var(--green-primary)';
-                        postEl.style.boxShadow = '0 0 0 4px rgba(76,175,80,0.18)';
-                        setTimeout(() => { postEl.style.outline = ''; postEl.style.boxShadow = ''; }, 1800);
-                    }
-                }, 350);
-            }, 450);
-        } catch(e) {
-            console.warn('sharePost: openBreederProfile failed', e);
-        }
-        _copyLink(postLink);
-        showToast('Opening post \u2022 Link copied \uD83D\uDD17');
-        return;
-    }
-
-    // ── Fallback: post owner unknown, just copy the link ────────────────────
-    _copyLink(postLink);
-    showToast('Link copied \uD83D\uDD17');
 }
 
 function editComment(postId, commentId, currentText) {
@@ -1044,28 +913,10 @@ async function saveAnimal() {
     showToast('Uploading animal information...');
     
     try {
-        let imageUrl = null;
-
-        // Prefer cropped file, then raw input file, then pendingAnimalImages fallback
-        const _fileToUpload =
-            (window._croppedFiles && window._croppedFiles['animal']) ||
-            (animalImageInput && animalImageInput.files && animalImageInput.files[0]) ||
-            (pendingAnimalImages && pendingAnimalImages[0]) ||
-            null;
-
-        if (_fileToUpload) {
-            try {
-                imageUrl = await StorageAPI.uploadAnimalImage(_fileToUpload);
-            } catch (uploadErr) {
-                console.error('Animal image upload failed:', uploadErr);
-                showToast('Photo upload failed: ' + uploadErr.message, 'error');
-                // Don't proceed — user should know the photo didn't save
-                return;
-            }
-        }
-
-        if (!imageUrl) {
-            imageUrl = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400';
+        let imageUrl = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400';
+        
+        if (animalImageInput && animalImageInput.files && animalImageInput.files[0]) {
+            imageUrl = await StorageAPI.uploadAnimalImage(animalImageInput.files[0]);
         }
         
         const uploadedDocuments = [];
@@ -1783,7 +1634,7 @@ async function loadAndDisplayRatings() {
     try {
         const { data, error } = await window.supabase
             .from('ratings')
-            .select('id,rater_id,rated_user_id,rating,comment,created_at,updated_at')
+            .select('*')
             .eq('rated_user_id', currentUserId)
             .order('created_at', { ascending: false });
         if (error) throw error;
@@ -2084,7 +1935,7 @@ async function loadMessages(contactId) {
     try {
         const { data, error } = await window.supabase
             .from('messages')
-            .select('id,sender_id,receiver_id,text,image_url,type,created_at,read')
+            .select('*')
             .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${contactId}),and(sender_id.eq.${contactId},receiver_id.eq.${currentUserId})`)
             .order('created_at', { ascending: true });
         
@@ -2350,24 +2201,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     await loadProfile();
-
-    // If loadProfile couldn't resolve the user (e.g. token refresh race on first load),
-    // wait briefly and retry once before giving up.
-    if (!currentUserId) {
-        await new Promise(r => setTimeout(r, 800));
-        await loadProfile();
-    }
-
     await loadPosts();
     await loadAnimals();
-
-    // Safety net: if animals came back empty AND we have a valid user, retry once
-    // after a short delay — guards against auth token race on first load.
-    if (animals.length === 0 && currentUserId) {
-        await new Promise(r => setTimeout(r, 1000));
-        await loadAnimals();
-    }
-
     loadFollowCounts();
     
     setupEventListeners();
@@ -2544,64 +2379,12 @@ async function editDetailComment(postId, commentId) {
     openModal('commentEditModal');
 }
 
-async function toggleDetailReplyLike(postId, commentId, replyId) {
-    const user = User.getUser();
-    if (!user) { showToast('Please sign in', 'error'); return; }
-    let post = posts.find(p => String(p.id) === String(postId));
-    if (!post) return;
-    const comments = post.comments || [];
-    const cidx = comments.findIndex(c => String(c.id) === String(commentId));
-    if (cidx === -1) return;
-    const replies = comments[cidx].replies || [];
-    const ridx = replies.findIndex(r => String(r.id) === String(replyId));
-    if (ridx === -1) return;
-    const r = replies[ridx];
-    const likedBy = r.likedBy || [];
-    if (likedBy.includes(user.id)) {
-        r.likedBy = likedBy.filter(id => id !== user.id);
-        r.likes = Math.max(0, (r.likes || 1) - 1);
-    } else {
-        r.likedBy = [...likedBy, user.id];
-        r.likes = (r.likes || 0) + 1;
-    }
-    replies[ridx] = r;
-    comments[cidx].replies = replies;
-    post.comments = comments;
-    try {
-        await updatePostPublic(postId, { comments });
-        const sideEl = document.getElementById('postDetailSide');
-        if (sideEl) _renderPostDetailSide(sideEl, post);
-    } catch(err) { console.error('toggleDetailReplyLike error:', err); }
-}
-
-async function deleteDetailReply(postId, commentId, replyId) {
-    const user = User.getUser();
-    if (!user) return;
-    if (!confirm('Delete this reply?')) return;
-    let post = posts.find(p => String(p.id) === String(postId));
-    if (!post) return;
-    const comments = post.comments || [];
-    const cidx = comments.findIndex(c => String(c.id) === String(commentId));
-    if (cidx === -1) return;
-    comments[cidx].replies = (comments[cidx].replies || []).filter(r => String(r.id) !== String(replyId));
-    post.comments = comments;
-    try {
-        await updatePostPublic(postId, { comments });
-        showToast('Reply deleted');
-        const sideEl = document.getElementById('postDetailSide');
-        if (sideEl) _renderPostDetailSide(sideEl, post);
-        renderPosts();
-    } catch(err) { console.error('deleteDetailReply error:', err); showToast('Failed to delete', 'error'); }
-}
-
 window.toggleDetailCommentLike  = toggleDetailCommentLike;
 window.toggleDetailCommentReply = toggleDetailCommentReply;
 window.postDetailReply          = postDetailReply;
 window.deleteDetailComment      = deleteDetailComment;
 window.editDetailComment        = editDetailComment;
 window.showCommentEditHistory   = showCommentEditHistory;
-window.toggleDetailReplyLike    = toggleDetailReplyLike;
-window.deleteDetailReply        = deleteDetailReply;
 
 // ============================================
 // POST DETAIL PANEL (Facebook-style)
@@ -2723,7 +2506,7 @@ function _renderPostDetailSide(sideEl, post) {
         ${post.text ? `<div style="padding:14px 18px;font-size:14px;color:var(--text-primary);line-height:1.65;border-bottom:1px solid var(--border-light);flex-shrink:0;word-break:break-word;">${escapeHtml(post.text)}</div>` : ''}
         <!-- Meta -->
         <div style="padding:8px 18px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border-light);flex-shrink:0;">
-            ❤️ ${post.likes} likes &nbsp;•&nbsp; 💬 ${comments.length} comments${post.shares ? ` &nbsp;•&nbsp; 🔗 <span data-share-count="${post.id}">${post.shares}</span> shares` : ` &nbsp;•&nbsp; 🔗 <span data-share-count="${post.id}" style="display:none">0</span> shares`}
+            ❤️ ${post.likes} likes &nbsp;•&nbsp; 💬 ${comments.length} comments
         </div>
         <!-- Action buttons -->
         <div style="display:flex;gap:0;border-bottom:1px solid var(--border-light);flex-shrink:0;">
@@ -2766,16 +2549,9 @@ function _renderPostDetailSide(sideEl, post) {
                       ${replies.map(r=>`
                       <div style="display:flex;gap:8px;align-items:flex-start;">
                           <img src="${escapeHtml(r.authorImg||authorAvatar)}" onerror="this.src=defaultAvatar(this.alt||'User')" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;">
-                          <div style="flex:1;min-width:0;">
-                              <div style="background:var(--bg-secondary);border-radius:10px;padding:5px 10px;">
-                                  <div style="font-size:11px;font-weight:700;color:var(--text-primary);">${escapeHtml(r.author||'User')}</div>
-                                  <div style="font-size:12px;color:var(--text-secondary);word-break:break-word;">${escapeHtml(r.text||'')}</div>
-                              </div>
-                              <div style="display:flex;gap:10px;margin-top:2px;padding-left:4px;align-items:center;">
-                                  <span style="font-size:10px;color:var(--text-muted);">${formatDate(r.created_at||'')}</span>
-                                  <button onclick="toggleDetailReplyLike(${post.id},'${c.id}','${r.id}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:${(r.likedBy||[]).includes(user?.id)?'#e11d48':'#6b7280'};font-weight:600;padding:0;">${(r.likedBy||[]).includes(user?.id)?'❤️':'🤍'} ${r.likes||0}</button>
-                                  ${user && String(r.user_id) === String(user.id) ? `<button onclick="deleteDetailReply(${post.id},'${c.id}','${r.id}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:#ef4444;font-weight:600;padding:0;">Delete</button>` : ''}
-                              </div>
+                          <div style="background:var(--bg-secondary);border-radius:10px;padding:5px 10px;flex:1;min-width:0;">
+                              <div style="font-size:11px;font-weight:700;color:var(--text-primary);">${escapeHtml(r.author||'User')}</div>
+                              <div style="font-size:12px;color:var(--text-secondary);word-break:break-word;">${escapeHtml(r.text||'')}</div>
                           </div>
                       </div>`).join('')}
                   </div>` : ''}
@@ -2826,7 +2602,7 @@ window._pdToggleLike = async function(postId) {
     }
     // Update meta count
     const metaEl = document.querySelector('#postDetailSide [style*="text-muted"][style*="border-bottom"]');
-    if (metaEl && post) metaEl.innerHTML = `❤️ ${post.likes} likes &nbsp;•&nbsp; 💬 ${(post.comments||[]).length} comments${post.shares ? ` &nbsp;•&nbsp; 🔗 <span data-share-count="${post.id}">${post.shares}</span> shares` : ` &nbsp;•&nbsp; 🔗 <span data-share-count="${post.id}" style="display:none">0</span> shares`}`;
+    if (metaEl && post) metaEl.innerHTML = `❤️ ${post.likes} likes &nbsp;•&nbsp; 💬 ${(post.comments||[]).length} comments`;
 };
 window._pdToggleSave = async function(postId) {
     const btn = document.getElementById('pd-save-btn-' + postId);
@@ -2891,10 +2667,10 @@ async function _legacyOpenBreederProfile(userId) {
     try {
         const currentUser = User.getUser();
         const [profileRes, animalsRes, ratingsRes, postsRes, followersRes, followingRes, isFollowingRes] = await Promise.all([
-            window.supabase.from('profiles').select('id,name,profile_picture,cover_photo,bio,account_type,is_verified,location,contact,tags,stats,username').eq('id', userId).single(),
-            window.supabase.from('animals').select('id,name,breed,species,image_url,status,user_id,created_at').eq('user_id', userId).order('created_at', { ascending: false }),
-            window.supabase.from('ratings').select('id,rater_id,rated_user_id,rating,comment,created_at,updated_at').eq('rated_user_id', userId),
-            window.supabase.from('posts').select('id,user_id,text,images,likes,shares,comments,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
+            window.supabase.from('profiles').select('*').eq('id', userId).single(),
+            window.supabase.from('animals').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+            window.supabase.from('ratings').select('*').eq('rated_user_id', userId),
+            window.supabase.from('posts').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
             window.supabase.from('follows').select('follower_id').eq('following_id', userId).eq('status', 'accepted'),
             window.supabase.from('follows').select('following_id').eq('follower_id', userId).eq('status', 'accepted'),
             currentUser ? window.supabase.from('follows').select('id').eq('follower_id', currentUser.id).eq('following_id', userId).eq('status', 'accepted') : Promise.resolve({ data: [] })
@@ -3212,7 +2988,7 @@ async function addBreederPostComment(userId, postId, overrideText) {
     const user = User.getUser();
     if (!user) { showToast('Please sign in to comment', 'error'); return; }
     try {
-        const { data: postData } = await window.supabase.from('posts').select('id,user_id,text,images,likes,shares,comments,created_at').eq('id', postId).single();
+        const { data: postData } = await window.supabase.from('posts').select('*').eq('id', postId).single();
         if (!postData) { showToast('Post not found', 'error'); return; }
         const newComment = {
             id: Date.now(),
@@ -3306,7 +3082,7 @@ async function renderSavedPosts() {
             // Fetch from Supabase saved_posts table joined with posts and poster profile (include comments)
             const { data, error } = await window.supabase
                 .from('saved_posts')
-                .select('post_id, posts:post_id(id, text, images, likes, shares, comments, created_at, user_id, profiles:user_id(id, name, profile_picture))')
+                .select('post_id, posts:post_id(id, text, images, likes, comments, created_at, user_id, profiles:user_id(id, name, profile_picture))')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
 
@@ -3404,7 +3180,7 @@ async function renderSavedPosts() {
           <!-- Images grid -->
           ${imagesHtml}
           <!-- Meta -->
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">❤️ ${post.likes || 0} likes • 💬 ${comments.length} comments${post.shares ? ` • 🔗 <span data-share-count="${post.id}">${post.shares}</span> shares` : ` • 🔗 <span data-share-count="${post.id}" style="display:none">0</span> shares`}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">❤️ ${post.likes || 0} likes • 💬 ${comments.length} comments</div>
           <!-- Action buttons -->
           <div style="display:flex;gap:0;border-top:1px solid var(--border-light);border-bottom:1px solid var(--border-light);margin-bottom:10px;">
             <button id="sp-like-btn-${post.id}" onclick="toggleSavedPostLike(${post.id})" style="flex:1;padding:9px 4px;background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;color:${isLiked ? '#e11d48' : 'var(--text-secondary)'};border-right:1px solid var(--border-light);transition:background .15s;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='none'">
@@ -3442,7 +3218,7 @@ async function addSavedPostComment(postId) {
     let post = posts.find(p => p.id === postId || String(p.id) === String(postId));
     try {
         if (!post) {
-            const { data } = await window.supabase.from('posts').select('id,user_id,text,images,likes,shares,comments,created_at').eq('id', postId).single();
+            const { data } = await window.supabase.from('posts').select('*').eq('id', postId).single();
             post = data;
         }
         if (!post) { showToast('Post not found', 'error'); return; }
@@ -3552,13 +3328,13 @@ async function toggleSavedPostLike(postId) {
         const currentLikes = row?.posts?.likes || 0;
         if (alreadyLiked) {
             await window.supabase.from('likes').delete().eq('user_id', user.id).eq('post_id', postId);
-            await window.supabase.rpc('decrement_post_likes', { post_id: postId });
+            await updatePostPublic(postId, { likes: Math.max(0, currentLikes - 1) });
             _savedLikedIds.delete(String(postId));
             if (row) row.posts.likes = Math.max(0, currentLikes - 1);
         } else {
             const { error } = await window.supabase.from('likes').insert({ user_id: user.id, post_id: postId });
             if (error && error.code !== '23505') throw error;
-            await window.supabase.rpc('increment_post_likes', { post_id: postId });
+            await updatePostPublic(postId, { likes: currentLikes + 1 });
             _savedLikedIds.add(String(postId));
             if (row) row.posts.likes = currentLikes + 1;
         }
@@ -3923,17 +3699,10 @@ function openBPPostDetail(userId, postId, imagesJson) {
                             <div style="width:24px;height:24px;border-radius:50%;background:var(--green-light);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green-primary);">
                                 ${r.authorImg?`<img src="${escapeHtml(r.authorImg)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`:escapeHtml((r.author||'?').charAt(0).toUpperCase())}
                             </div>
-                            <div style="flex:1;min-width:0;">
-                                <div style="background:var(--bg-secondary);border-radius:10px;padding:5px 10px;">
-                                    <div style="font-size:11px;font-weight:700;color:var(--text-primary);">${escapeHtml(r.author||'User')}</div>
-                                    <div style="font-size:12px;color:var(--text-secondary);word-break:break-word;">${escapeHtml(r.text||'')}</div>
-                                </div>
-                                <div style="display:flex;gap:10px;margin-top:2px;padding-left:4px;align-items:center;">
-                                    <span style="font-size:10px;color:var(--text-muted);">${formatDate(r.created_at||'')}</span>
-                                    <button onclick="window._bppdLikeReply('${postId}','${escapeHtml(String(c.id))}','${escapeHtml(String(r.id))}')" id="bppd-reply-like-${escapeHtml(String(r.id))}" style="background:none;border:none;cursor:pointer;font-size:11px;color:${(r.likedBy||[]).includes(currentUser?.id)?'#e11d48':'#6b7280'};font-weight:600;padding:0;">${(r.likedBy||[]).includes(currentUser?.id)?'❤️':'🤍'} ${r.likes||0}</button>
-                                    ${currentUser && String(r.user_id)===String(currentUser.id) ? `<button onclick="window._bppdEditReply('${postId}','${escapeHtml(String(c.id))}','${escapeHtml(String(r.id))}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:#3b82f6;font-weight:600;padding:0;">Edit</button>` : ''}
-                                    ${currentUser && String(r.user_id)===String(currentUser.id) ? `<button onclick="window._bppdDelReply('${postId}','${escapeHtml(String(c.id))}','${escapeHtml(String(r.id))}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:#ef4444;font-weight:600;padding:0;">Delete</button>` : ''}
-                                </div>
+                            <div style="background:var(--bg-secondary);border-radius:10px;padding:5px 10px;flex:1;min-width:0;">
+                                <div style="font-size:11px;font-weight:700;color:var(--text-primary);">${escapeHtml(r.author||'User')}</div>
+                                <div style="font-size:12px;color:var(--text-secondary);word-break:break-word;">${escapeHtml(r.text||'')}</div>
+                                ${currentUser && String(r.user_id)===String(currentUser.id) ? `<div style="margin-top:3px;"><button onclick="window._bppdEditReply('${postId}','${escapeHtml(String(c.id))}','${escapeHtml(String(r.id))}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:#3b82f6;font-weight:600;padding:0;">Edit</button></div>` : ''}
                             </div>
                         </div>`).join('')}
                     </div>` : ''}
@@ -4001,37 +3770,6 @@ function openBPPostDetail(userId, postId, imagesJson) {
             renderComments({comments}, listEl);
             showToast('Reply updated ✏️');
         };
-        window._bppdLikeReply = async (pid, cid, rid) => {
-            if (!currentUser) { showToast('Sign in to like', 'error'); return; }
-            const { data } = await window.supabase.from('posts').select('comments').eq('id', pid).single();
-            const comments = data?.comments || [];
-            const cidx = comments.findIndex(c => String(c.id) === String(cid));
-            if (cidx === -1) return;
-            const replies = comments[cidx].replies || [];
-            const ridx = replies.findIndex(r => String(r.id) === String(rid));
-            if (ridx === -1) return;
-            const r = replies[ridx];
-            const lb = r.likedBy || [];
-            if (lb.includes(currentUser.id)) { r.likedBy = lb.filter(id => id !== currentUser.id); r.likes = Math.max(0, (r.likes||1) - 1); }
-            else { r.likedBy = [...lb, currentUser.id]; r.likes = (r.likes||0) + 1; }
-            replies[ridx] = r;
-            comments[cidx].replies = replies;
-            await window.supabase.from('posts').update({ comments }).eq('id', pid);
-            const btn = document.getElementById('bppd-reply-like-' + rid);
-            if (btn) { btn.style.color = (r.likedBy||[]).includes(currentUser.id) ? '#e11d48' : '#6b7280'; btn.innerHTML = `${(r.likedBy||[]).includes(currentUser.id)?'❤️':'🤍'} ${r.likes||0}`; }
-        };
-        window._bppdDelReply = async (pid, cid, rid) => {
-            if (!currentUser) return;
-            if (!confirm('Delete this reply?')) return;
-            const { data } = await window.supabase.from('posts').select('comments').eq('id', pid).single();
-            const comments = data?.comments || [];
-            const cidx = comments.findIndex(c => String(c.id) === String(cid));
-            if (cidx === -1) return;
-            comments[cidx].replies = (comments[cidx].replies || []).filter(r => String(r.id) !== String(rid));
-            await window.supabase.from('posts').update({ comments }).eq('id', pid);
-            renderComments({ comments }, listEl);
-            showToast('Reply deleted');
-        };
         window._bppdDelCmt = async (pid, cid) => {
             if (!currentUser) return;
             if (!confirm('Delete this comment?')) return;
@@ -4058,8 +3796,6 @@ function openBPPostDetail(userId, postId, imagesJson) {
             showToast('Comment updated ✏️');
         };
     }
-
-    let _bppdIsLiked = false;
 
     function renderSide(postData) {
         const sideEl = document.getElementById('bppdSide');
@@ -4088,8 +3824,8 @@ function openBPPostDetail(userId, postId, imagesJson) {
             </div>
             <!-- Action row -->
             <div style="display:flex;border-bottom:1px solid var(--border-light);flex-shrink:0;">
-                <button id="bppd-post-like-btn" onclick="window._bppdToggleLike('${userId}','${postId}')" style="flex:1;padding:10px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:${_bppdIsLiked?'#e11d48':'var(--text-secondary)'};border-right:1px solid var(--border-light);transition:background .15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='none'">
-                    ${_bppdIsLiked ? '❤️ Liked' : '🤍 Like'}
+                <button onclick="window._bppdToggleLike('${userId}','${postId}')" style="flex:1;padding:10px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-secondary);border-right:1px solid var(--border-light);transition:background .15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='none'">
+                    🤍 Like
                 </button>
                 <button onclick="document.getElementById('bppdCommentInput').focus()" style="flex:1;padding:10px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-secondary);transition:background .15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='none'">
                     💬 Comment
@@ -4111,7 +3847,7 @@ function openBPPostDetail(userId, postId, imagesJson) {
             </div>`;
 
         // Load comments
-        window.supabase.from('posts').select('comments,text,likes,shares,author,created_at').eq('id', postId).single().then(({data}) => {
+        window.supabase.from('posts').select('comments,text,likes,author,created_at').eq('id', postId).single().then(({data}) => {
             renderComments(data);
         });
     }
@@ -4144,48 +3880,24 @@ function openBPPostDetail(userId, postId, imagesJson) {
     };
     document.addEventListener('keydown', document._bppdKeyHandler);
 
-    // Fetch full post data + liked state then render both panes
-    (async () => {
-        const [{ data: postData }, { data: likeRow }] = await Promise.all([
-            window.supabase.from('posts').select('id,user_id,text,images,likes,shares,comments,created_at').eq('id', postId).single(),
-            (() => { const u = User.getUser(); return u ? window.supabase.from('likes').select('id').eq('user_id', u.id).eq('post_id', postId).maybeSingle() : Promise.resolve({ data: null }); })()
-        ]);
-        _bppdIsLiked = !!likeRow;
+    // Fetch full post data then render both panes
+    window.supabase.from('posts').select('*').eq('id', postId).single().then(({data}) => {
         renderMedia();
-        renderSide(postData || {});
-    })();
+        renderSide(data || {});
+    });
 
-    let _bppdLikeInFlight = false;
     window._bppdToggleLike = async (uid, pid) => {
         const user = User.getUser();
         if (!user) { showToast('Please sign in to like', 'error'); return; }
-        if (_bppdLikeInFlight) return;
-        _bppdLikeInFlight = true;
-        const btn = document.getElementById('bppd-post-like-btn');
         try {
             const { data: postData } = await window.supabase.from('posts').select('likes').eq('id', pid).single();
-            const currentLikes = postData?.likes || 0;
-            if (_bppdIsLiked) {
-                // Unlike
-                await window.supabase.from('likes').delete().eq('user_id', user.id).eq('post_id', pid);
-                await window.supabase.rpc('decrement_post_likes', { post_id: pid });
-                _bppdIsLiked = false;
-                if (btn) { btn.style.color = 'var(--text-secondary)'; btn.textContent = '🤍 Like'; }
-            } else {
-                // Like
-                const { error } = await window.supabase.from('likes').insert({ user_id: user.id, post_id: Number(pid) });
-                if (error && error.code !== '23505') throw error;
-                await window.supabase.rpc('increment_post_likes', { post_id: pid });
-                _bppdIsLiked = true;
-                if (btn) { btn.style.color = '#e11d48'; btn.textContent = '❤️ Liked'; }
-            }
-            // Sync back to local posts[] cache if entry exists
-            const localPost = posts.find(p => String(p.id) === String(pid));
-            if (localPost) { localPost.liked = _bppdIsLiked; localPost.likes = Math.max(0, currentLikes + (_bppdIsLiked ? 1 : -1)); }
-        } catch(err) {
-            console.error('_bppdToggleLike error:', err);
-            showToast('Failed to update like', 'error');
-        } finally { _bppdLikeInFlight = false; }
+            const newLikes = (postData?.likes || 0) + 1;
+            await window.supabase.from('posts').update({ likes: newLikes }).eq('id', pid);
+            showToast('❤️ Liked!');
+            // refresh side
+            const { data: refreshed } = await window.supabase.from('posts').select('*').eq('id', pid).single();
+            renderSide(refreshed || {});
+        } catch(err) { showToast('Failed to like', 'error'); }
     };
 
     window._bppdPostComment = async (uid, pid) => {
@@ -4208,12 +3920,12 @@ function openBPPostDetail(userId, postId, imagesJson) {
             await window.supabase.from('posts').update({comments: updatedComments}).eq('id', pid);
             showToast('Comment added! 💬');
             // Refresh comments inline
-            const { data } = await window.supabase.from('posts').select('comments,likes,shares').eq('id', pid).single();
+            const { data } = await window.supabase.from('posts').select('comments,likes').eq('id', pid).single();
             renderComments(data, document.getElementById('bppdCommentsList'));
             // Update meta
             const coms = data?.comments || [];
             const metaEl = document.querySelector('#bppdSide [style*="border-bottom"][style*="text-muted"]');
-            if (metaEl) metaEl.innerHTML = `❤️ ${data?.likes||0} like${(data?.likes||0)!==1?'s':''} &nbsp;•&nbsp; 💬 ${coms.length} comment${coms.length!==1?'s':''}${data?.shares ? ` &nbsp;•&nbsp; 🔗 ${data.shares} share${data.shares!==1?'s':''}` : ''}`;
+            if (metaEl) metaEl.innerHTML = `❤️ ${data?.likes||0} like${(data?.likes||0)!==1?'s':''} &nbsp;•&nbsp; 💬 ${coms.length} comment${coms.length!==1?'s':''}`;
         } catch(err) {
             console.error('_bppdPostComment error:', err);
             showToast('Failed to post comment', 'error');
@@ -4337,15 +4049,6 @@ function _initCropModal(dataUrl, ratio) {
     // Show modal
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
-
-    // Suppress backdrop-filter on all open .modal elements so they don't
-    // create a stacking context that traps the crop modal (z-index escape fix)
-    document.querySelectorAll('.modal').forEach(function(m) {
-        m._savedBackdropFilter = m.style.backdropFilter || '';
-        m._savedWebkitBackdropFilter = m.style.webkitBackdropFilter || '';
-        m.style.backdropFilter = 'none';
-        m.style.webkitBackdropFilter = 'none';
-    });
 
     srcImg.src = dataUrl;
 
@@ -4655,16 +4358,6 @@ function _closeCropModal() {
     document.body.style.overflow = '';
     const cropBox = document.getElementById('cropBox');
     if (cropBox && cropBox._removeCropListeners) cropBox._removeCropListeners();
-
-    // Restore backdrop-filter on all .modal elements
-    document.querySelectorAll('.modal').forEach(function(m) {
-        if (m._savedBackdropFilter !== undefined) {
-            m.style.backdropFilter = m._savedBackdropFilter;
-            m.style.webkitBackdropFilter = m._savedWebkitBackdropFilter;
-            delete m._savedBackdropFilter;
-            delete m._savedWebkitBackdropFilter;
-        }
-    });
 }
 
 // Wire up ratio pills
