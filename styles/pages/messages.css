@@ -1385,7 +1385,7 @@ body.messages-open {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.85);
-  z-index: 100000;
+  z-index: 999999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1544,4 +1544,95 @@ body.messages-open {
   .send-btn { width: 38px; height: 38px; }
   .conversation-item { padding: 10px 12px; }
   .msg-modal-content { padding: 16px; }
+}
+
+/* ===================================================
+   AVATAR INITIALS FALLBACK
+   =================================================== */
+
+/* Shared initials style */
+.conv-avatar-placeholder.avatar-initials,
+.conv-avatar-placeholder:not(:has(img)) {
+  background: linear-gradient(135deg, var(--green-light), var(--mint));
+  color: var(--green-dark, #2d6a4f);
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px var(--shadow);
+  letter-spacing: 0.5px;
+}
+
+/* Message bubble left-side avatar initials */
+.msg-avatar.avatar-initials {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green-light), var(--mint));
+  color: var(--green-dark, #2d6a4f);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+  border: 2px solid white;
+}
+
+/* New chat modal nc-avatar initials */
+.nc-avatar-initials {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green-light), var(--mint));
+  color: var(--green-dark, #2d6a4f);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.5px;
+}
+
+/* Info panel avatar initials */
+.info-avatar-initials {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--green-light), var(--mint));
+  color: var(--green-dark, #2d6a4f);
+  font-size: 32px;
+  font-weight: 700;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  letter-spacing: 1px;
+}
+
+/* Chat header avatar initials mode */
+.chat-header-avatar.initials-mode::before {
+  content: attr(data-initials);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green-light), var(--mint));
+  color: var(--green-dark, #2d6a4f);
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font);
+  border: 2px solid var(--green-light);
+  letter-spacing: 0.5px;
 }
