@@ -823,8 +823,8 @@ function _bpPostsHTML() {
     </div>
   </div>
   ${p.text ? `<div style="font-size:13px;color:var(--text-primary);line-height:1.65;margin-bottom:10px;white-space:pre-wrap;cursor:pointer;" data-op="open-post" data-pid="${pid}">${_esc(p.text)}</div>` : ''}
-  ${imgs.length ? `<div style="display:grid;grid-template-columns:${imgs.length>1?'1fr 1fr':'1fr'};gap:4px;border-radius:10px;overflow:hidden;margin-bottom:10px;cursor:pointer;" data-op="open-post" data-pid="${pid}">
-    ${imgs.slice(0,4).map((img,ii)=>`<div style="position:relative;overflow:hidden;">${imgs.length>4&&ii===3?`<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:800;z-index:1;">+${imgs.length-4}</div>`:''}<img src="${_esc(img)}" onerror="this.style.display='none'" style="width:100%;height:${imgs.length===1?'200px':'130px'};object-fit:cover;display:block;"></div>`).join('')}
+  ${imgs.length ? `<div style="display:grid;grid-template-columns:${imgs.length>1?'1fr 1fr':'1fr'};gap:5px;border-radius:12px;overflow:hidden;margin-bottom:10px;cursor:pointer;background:var(--bg-secondary,#f5f5f5);" data-op="open-post" data-pid="${pid}">
+    ${imgs.slice(0,4).map((img,ii)=>`<div style="position:relative;overflow:hidden;background:var(--bg-secondary,#f5f5f5);border-radius:${imgs.length===1?'12px':'8px'};">${imgs.length>4&&ii===3?`<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:800;z-index:1;">+${imgs.length-4}</div>`:''}<img src="${_esc(img)}" onerror="this.style.display='none'" style="width:100%;height:${imgs.length===1?'auto':'160px'};min-height:${imgs.length===1?'180px':'160px'};max-height:${imgs.length===1?'420px':'200px'};object-fit:${imgs.length===1?'contain':'cover'};display:block;"></div>`).join('')}
   </div>` : ''}
   <div style="font-size:11px;color:var(--text-muted);padding-top:8px;margin-bottom:2px;">
     ❤️ <span data-like-count="${pid}">${p.likes||0}</span> likes • 💬 <span data-cmt-count="${pid}">${cmts.length}</span> comments
