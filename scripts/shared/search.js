@@ -162,8 +162,8 @@
       var safe = encodeURIComponent(q)          // encode the query itself
                   .replace(/[(),'*]/g, '\\$&'); // escape PostgREST specials
 
-      // Pattern: %25<encoded-query>%25 → decodes to %query% in PostgREST
-      var pattern = '%25' + safe + '%25';
+      // Pattern: %query% for PostgREST ilike wildcard matching
+      var pattern = '%' + safe + '%';
       var orFilter = 'name.ilike.' + pattern + ',username.ilike.' + pattern;
 
       var { data, error } = await window.supabase
