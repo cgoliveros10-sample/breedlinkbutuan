@@ -380,6 +380,21 @@ function showToast(msg, duration) {
 }
 
 /* ===================================================
+   NAV BADGE
+   =================================================== */
+function updateNavBadge() {
+  const badge = document.getElementById('messageBadge');
+  if (!badge) return;
+  const total = Object.values(MessagesApp.unreadMap).reduce(function(sum, n) { return sum + (n || 0); }, 0);
+  if (total > 0) {
+    badge.textContent = total > 99 ? '99+' : total;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+/* ===================================================
    RENDER: SIDEBAR
    =================================================== */
 function renderSidebar() {
@@ -400,6 +415,7 @@ function renderSidebar() {
       '<div class="conv-body"><div class="conv-top"><span class="conv-name">' + escHtml(c.name) + '</span><span class="conv-time">' + time + '</span></div>' +
       '<div class="conv-bottom"><span class="conv-preview">' + preview + '</span>' + (unread > 0 ? '<span class="conv-unread-badge">' + unread + '</span>' : (c.isMatch ? '<span class="conv-match-badge">💚 Match</span>' : '')) + '</div></div></div>';
   }).join('');
+  updateNavBadge();
 }
 
 /* ===================================================
@@ -827,6 +843,7 @@ function closeMessagesModal() {
 /* ===================================================
    GLOBAL EXPORTS
    =================================================== */
+window.updateNavBadge              = updateNavBadge;
 window.openMessagesModal           = openMessagesModal;
 window.closeMessagesModal          = closeMessagesModal;
 window.openMessengerGlobal         = openMessagesModal;
