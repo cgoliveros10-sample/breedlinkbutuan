@@ -289,21 +289,28 @@ function startResendTimer() {
   btn.disabled = true;
   if (resendTimer) clearInterval(resendTimer);
 
-  resendTimer = setInterval(() => {
-    resendSeconds--;
-    // Re-query each tick so it still works after innerHTML replacement on resend
+  // Update display helper - re-queries each tick so it works after innerHTML replacement
+  function updateDisplay() {
     const timerSpan = document.getElementById('timerDisplay');
     if (timerSpan) {
       const m = Math.floor(resendSeconds / 60);
       const s = resendSeconds % 60;
       timerSpan.textContent = m + ':' + (s < 10 ? '0' : '') + s;
     }
+  }
+  updateDisplay(); // show 2:00 immediately without waiting 1 second
+
+  resendTimer = setInterval(() => {
+    resendSeconds--;
     if (resendSeconds <= 0) {
       clearInterval(resendTimer);
       btn.disabled = false;
+      const timerSpan = document.getElementById('timerDisplay');
       if (timerSpan) timerSpan.parentElement.textContent = 'Resend Code';
       else document.getElementById('resendBtnText').textContent = 'Resend Code';
+      return;
     }
+    updateDisplay();
   }, 1000);
 }
 
