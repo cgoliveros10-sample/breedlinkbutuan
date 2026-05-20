@@ -7,4 +7,4 @@ Disallow: /pages/email-action.html
 Disallow: /pages/messages.html
 Disallow: /pages/profile.html
 
-Sitemap: https://breedlink.vercel.app/
+Sitemap: https://breedlinkbutuan.vercel.app/
