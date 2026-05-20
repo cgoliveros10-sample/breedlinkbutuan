@@ -1949,7 +1949,7 @@ async function loadMessages(contactId) {
             time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
         
-        renderMessages(contactId);
+        _legacyMessengerRenderMessages(contactId);
         
         await window.supabase
             .from('messages')
@@ -1998,7 +1998,7 @@ async function saveMessage(contactId, text, imageUrl) {
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
         
-        renderMessages(contactId);
+        _legacyMessengerRenderMessages(contactId);
         
         if (imageUrl) showToast('Image sent! 📷');
         
@@ -2034,7 +2034,7 @@ function renderContactsList() {
     }
     
     container.innerHTML = messengerContacts.map(contact => `
-        <div class="contact-item" onclick="startChat(${contact.id})">
+        <div class="contact-item" onclick="_legacyMessengerStartChat(${contact.id})">
             <img src="${contact.avatar}" alt="${contact.name}" onerror="this.src=defaultAvatar(this.alt||'User')">
             <div class="contact-info">
                 <div class="contact-name">${escapeHtml(contact.name)}</div>
@@ -2048,7 +2048,7 @@ function renderContactsList() {
     `).join('');
 }
 
-async function startChat(contactId) {
+async function _legacyMessengerStartChat(contactId) {
     currentChatId = contactId;
     const contact = messengerContacts.find(c => c.id === contactId);
     if (!contact) return;
@@ -2072,7 +2072,7 @@ function closeChat() {
     renderContactsList();
 }
 
-function renderMessages(contactId) {
+function _legacyMessengerRenderMessages(contactId) {
     const container = document.getElementById('messagesContainer');
     if (!container) return;
     
@@ -2099,7 +2099,7 @@ function renderMessages(contactId) {
     container.scrollTop = container.scrollHeight;
 }
 
-async function sendMessage() {
+async function _legacyMessengerSendMessage() {
     const input = document.getElementById('messageInput');
     if (!input || !currentChatId) return;
     
@@ -2112,7 +2112,7 @@ async function sendMessage() {
 
 function handleMessageInput(event) {
     if (event.key === 'Enter') {
-        sendMessage();
+        _legacyMessengerSendMessage();
     }
 }
 
@@ -2135,7 +2135,7 @@ function searchContacts(query) {
     }
     
     container.innerHTML = filtered.map(contact => `
-        <div class="contact-item" onclick="startChat(${contact.id})">
+        <div class="contact-item" onclick="_legacyMessengerStartChat(${contact.id})">
             <img src="${contact.avatar}" alt="${contact.name}">
             <div class="contact-info">
                 <div class="contact-name">${escapeHtml(contact.name)}</div>
@@ -4278,8 +4278,7 @@ function _applyCrop() {
 
     canvas.toBlob(function(blob) {
         if (!blob) { showToast('Crop failed, using original', 'error'); _skipCrop(); return; }
-        const mimeToExt = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
-        const ext  = mimeToExt[blob.type] || 'jpg';
+        const ext  = (_cropFile.name || 'image').split('.').pop() || 'jpg';
         const file = new File([blob], `cropped_${Date.now()}.${ext}`, { type: blob.type });
         const dataUrl = canvas.toDataURL();
         const target = _cropTarget;
