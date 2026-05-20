@@ -347,7 +347,7 @@ async function loadAnimals() {
         console.log('[loadAnimals] Querying for user_id:', currentUserId);
         const { data, error } = await window.supabase
             .from('animals')
-            .select('id,name,breed,species,image_url,status,description,age,gender,color,documents,user_id,created_at,updated_at')
+            .select('id,name,breed,species,image_url,status,description,age,gender,color,user_id,created_at,updated_at,price,image_urls,video_url,health_certificates,health_documents,genetic_tests,is_vaccinated,is_dewormed,category,type')
             .eq('user_id', currentUserId)
             .order('created_at', { ascending: false });
         
@@ -1667,7 +1667,7 @@ async function loadAndDisplayRatings() {
     try {
         const { data, error } = await window.supabase
             .from('ratings')
-            .select('id,rater_id,rated_user_id,rating,comment,created_at,edited,editedAt,replies,likes,likedBy')
+            .select('id,rater_id,rated_user_id,rating,comment,created_at,updated_at')
             .eq('rated_user_id', currentUserId)
             .order('created_at', { ascending: false });
         if (error) throw error;
@@ -2777,7 +2777,7 @@ async function _legacyOpenBreederProfile(userId) {
         const [profileRes, animalsRes, ratingsRes, postsRes, followersRes, followingRes, isFollowingRes] = await Promise.all([
             window.supabase.from('profiles').select('id,name,profile_picture,cover_photo,bio,account_type,is_verified,location,contact,tags,stats,username').eq('id', userId).single(),
             window.supabase.from('animals').select('id,name,breed,species,image_url,status,user_id,created_at').eq('user_id', userId).order('created_at', { ascending: false }),
-            window.supabase.from('ratings').select('id,rater_id,rated_user_id,rating,comment,created_at,edited,editedAt,replies,likes,likedBy').eq('rated_user_id', userId),
+            window.supabase.from('ratings').select('id,rater_id,rated_user_id,rating,comment,created_at,updated_at').eq('rated_user_id', userId),
             window.supabase.from('posts').select('id,user_id,text,images,likes,shares,comments,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
             window.supabase.from('follows').select('follower_id').eq('following_id', userId).eq('status', 'accepted'),
             window.supabase.from('follows').select('following_id').eq('follower_id', userId).eq('status', 'accepted'),
