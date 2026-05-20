@@ -780,6 +780,7 @@ async function openMessagesModal(chatDataArg) {
 
   // ── Open the modal fresh ────────────────────────────────────────────────
   overlay.classList.add('active');
+  overlay.style.display = 'flex';
   document.body.classList.add('messages-open');
 
   const isFirstLoad = MessagesApp.contacts.length === 0;
@@ -809,6 +810,7 @@ function closeMessagesModal() {
   const overlay = document.getElementById('messagesModalOverlay');
   if (!overlay) return;
   overlay.classList.remove('active');
+  overlay.style.display = 'none';
   document.body.classList.remove('messages-open');
   MessagesApp.stopPolling();
   // Preserve unreadMap and conversations so re-opening doesn't reset read state.
