@@ -1,11 +1,37 @@
 // Extracted inline script from verify-otp.html
-// Capture createClient BEFORE db.js overwrites window.supabase
-const _supabaseCreateClient = supabase.createClient.bind(supabase);
-
 // ── Init ──────────────────────────────────────────────────────────────────
+// Use window vars set by db.js (injected at build time), falling back to
+// template tokens so inject-env.js can still patch them at build time.
 const SUPABASE_URL      = window.SUPABASE_URL || '%%SUPABASE_URL%%';
-const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
-const sb = _supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '%%SUPABASE_ANON_KEY%%';
+
+// Lightweight direct-fetch wrappers — avoids the Supabase JS SDK firing
+// getSession() on createClient(), which hits /auth/v1/token prematurely
+// before the user has verified their OTP.
+const sb = {
+  auth: {
+    async verifyOtp({ email, token, type }) {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        body: JSON.stringify({ email, token, type, gotrue_meta_security: {} })
+      });
+      const data = await res.json();
+      if (!res.ok) return { data: null, error: { message: data.error_description || data.msg || 'Verification failed' } };
+      return { data: { session: data, user: data.user }, error: null };
+    },
+    async resend({ type, email }) {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/resend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        body: JSON.stringify({ email, type })
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: { message: data.error_description || data.msg || 'Resend failed' } };
+      return { error: null };
+    }
+  }
+};
 
 // ── Load pending signup data ──────────────────────────────────────────────
 let pendingData = null;
@@ -207,7 +233,10 @@ window.verifyCode = async function verifyCode() {
     // Store tokens
     const { access_token, refresh_token } = data.session;
     sessionStorage.setItem('breedlink_token', access_token);
-    if (refresh_token) sessionStorage.setItem('breedlink_refresh_token', refresh_token);
+    if (refresh_token) {
+        sessionStorage.setItem('breedlink_refresh_token', refresh_token);
+        localStorage.setItem('breedlink_refresh_token', refresh_token);
+    }
 
     // Create the profile row now that auth is confirmed
     await createProfile(data.user.id, access_token);
@@ -255,13 +284,15 @@ let resendTimer = null;
 let resendSeconds = 120;
 
 function startResendTimer() {
-  const btn       = document.getElementById('resendBtn');
-  const timerSpan = document.getElementById('timerDisplay');
+  const btn = document.getElementById('resendBtn');
   resendSeconds = 120;
   btn.disabled = true;
+  if (resendTimer) clearInterval(resendTimer);
 
   resendTimer = setInterval(() => {
     resendSeconds--;
+    // Re-query each tick so it still works after innerHTML replacement on resend
+    const timerSpan = document.getElementById('timerDisplay');
     if (timerSpan) {
       const m = Math.floor(resendSeconds / 60);
       const s = resendSeconds % 60;
@@ -270,7 +301,8 @@ function startResendTimer() {
     if (resendSeconds <= 0) {
       clearInterval(resendTimer);
       btn.disabled = false;
-      document.getElementById('resendBtnText').textContent = 'Resend Code';
+      if (timerSpan) timerSpan.parentElement.textContent = 'Resend Code';
+      else document.getElementById('resendBtnText').textContent = 'Resend Code';
     }
   }, 1000);
 }
