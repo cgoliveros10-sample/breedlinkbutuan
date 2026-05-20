@@ -239,10 +239,51 @@
   --------------------------------------------------- */
   function loadMessagesScript() {
     if (document.querySelector('script[data-bl-messages-js]')) return;
+    // messages.html already has the overlay in its static HTML and loads
+    // messages.js directly — injecting it again would run _messagesInit twice.
+    if (window.location.pathname.split('/').pop() === 'messages.html') return;
     const script = document.createElement('script');
     script.src = prefix + 'scripts/pages/messages.js';
     script.setAttribute('data-bl-messages-js', '1');
     document.body.appendChild(script);
+  }
+
+  /* ---------------------------------------------------
+     6b. Background nav-badge poller
+         Runs only on pages OTHER than messages.html (that page
+         uses the full polling system inside messages.js).
+         Fetches unread count from Supabase every 30 s and
+         updates the #messageBadge element in the nav.
+  --------------------------------------------------- */
+  function startNavBadgePoller() {
+    // Don't run on messages.html — the full system handles it there.
+    if (window.location.pathname.split('/').pop() === 'messages.html') return;
+
+    async function refreshBadge() {
+      try {
+        if (!window.supabase) return;
+        const { data: { user } } = await window.supabase.auth.getUser();
+        if (!user) return;
+        const { count } = await window.supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('receiver_id', user.id)
+          .eq('is_read', false);
+        const badge = document.getElementById('messageBadge');
+        if (!badge) return;
+        const total = count || 0;
+        if (total > 0) {
+          badge.textContent = total > 99 ? '99+' : total;
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      } catch (_) { /* non-fatal */ }
+    }
+
+    // First run after a short delay (let auth settle), then every 30 s.
+    setTimeout(refreshBadge, 2000);
+    setInterval(refreshBadge, 30000);
   }
 
   /* ---------------------------------------------------
@@ -251,6 +292,7 @@
   function init() {
     injectModalHTML();
     loadMessagesScript();
+    startNavBadgePoller();
   }
 
   if (document.readyState === 'loading') {
