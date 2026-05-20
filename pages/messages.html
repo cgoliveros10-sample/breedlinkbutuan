@@ -176,12 +176,6 @@
   <!-- Toast -->
   <div class="msg-toast" id="msgToast" style="display:none;"></div>
 
-  <!-- Image Lightbox -->
-  <div class="lightbox" id="lightbox" style="display:none;" onclick="closeLightbox()">
-    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
-    <img id="lightboxImg" src="" alt="Preview">
-  </div>
-
   <script src="../scripts/shared/db.js"></script>
   
   
@@ -195,5 +189,10 @@
 
 
 <script src="../scripts/pages/messages-inline.js"></script>
+  <!-- Image Lightbox (outside all modals, last in DOM for correct z-index) -->
+  <div class="lightbox" id="lightbox" style="display:none;" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lightboxImg" src="" alt="Preview">
+  </div>
 </body>
 </html>
