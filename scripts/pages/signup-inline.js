@@ -301,6 +301,7 @@ var currentStep = 1;
           sessionStorage.setItem('breedlink_token', signUpData.session.access_token);
           if (signUpData.session.refresh_token) {
             sessionStorage.setItem('breedlink_refresh_token', signUpData.session.refresh_token);
+            localStorage.setItem('breedlink_refresh_token', signUpData.session.refresh_token);
           }
           // Profile created — clear pending data
           sessionStorage.removeItem('breedlink_pending_signup');
