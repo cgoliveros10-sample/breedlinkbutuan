@@ -556,11 +556,22 @@ async function addPost() {
             }
 
             // Upload all images
+            // NOTE: fetch(dataUrl) is blocked by CSP connect-src — use pure-JS conversion instead
+            const dataUrlToBlob = (dataUrl) => {
+                const [header, base64] = dataUrl.split(',');
+                const mime = header.match(/:(.*?);/)[1];
+                const binary = atob(base64);
+                const arr = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+                return new Blob([arr], { type: mime });
+            };
+            const mimeToExt = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif' };
             const imageUrls = [];
             for (const item of pendingPostImages) {
-                const blob = await (await fetch(item.dataUrl)).blob();
-                const ext = item.file?.name?.split('.').pop() || 'jpg';
-                const file = new File([blob], `post-image-${Date.now()}.${ext}`, { type: item.file?.type || 'image/jpeg' });
+                const blob = item.file ? item.file : dataUrlToBlob(item.dataUrl);
+                const mime = blob.type || item.file?.type || 'image/jpeg';
+                const ext  = mimeToExt[mime] || (item.file?.name?.split('.').pop()) || 'jpg';
+                const file = new File([blob], `post-image-${Date.now()}.${ext}`, { type: mime });
                 const url = await StorageAPI.uploadPostImage(file);
                 if (url) imageUrls.push(url);
             }
@@ -1949,7 +1960,7 @@ async function loadMessages(contactId) {
             time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
         
-        _legacyMessengerRenderMessages(contactId);
+        renderMessages(contactId);
         
         await window.supabase
             .from('messages')
@@ -1998,7 +2009,7 @@ async function saveMessage(contactId, text, imageUrl) {
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
         
-        _legacyMessengerRenderMessages(contactId);
+        renderMessages(contactId);
         
         if (imageUrl) showToast('Image sent! 📷');
         
@@ -2034,7 +2045,7 @@ function renderContactsList() {
     }
     
     container.innerHTML = messengerContacts.map(contact => `
-        <div class="contact-item" onclick="_legacyMessengerStartChat(${contact.id})">
+        <div class="contact-item" onclick="startChat(${contact.id})">
             <img src="${contact.avatar}" alt="${contact.name}" onerror="this.src=defaultAvatar(this.alt||'User')">
             <div class="contact-info">
                 <div class="contact-name">${escapeHtml(contact.name)}</div>
@@ -2048,7 +2059,7 @@ function renderContactsList() {
     `).join('');
 }
 
-async function _legacyMessengerStartChat(contactId) {
+async function startChat(contactId) {
     currentChatId = contactId;
     const contact = messengerContacts.find(c => c.id === contactId);
     if (!contact) return;
@@ -2072,7 +2083,7 @@ function closeChat() {
     renderContactsList();
 }
 
-function _legacyMessengerRenderMessages(contactId) {
+function renderMessages(contactId) {
     const container = document.getElementById('messagesContainer');
     if (!container) return;
     
@@ -2099,7 +2110,7 @@ function _legacyMessengerRenderMessages(contactId) {
     container.scrollTop = container.scrollHeight;
 }
 
-async function _legacyMessengerSendMessage() {
+async function sendMessage() {
     const input = document.getElementById('messageInput');
     if (!input || !currentChatId) return;
     
@@ -2112,7 +2123,7 @@ async function _legacyMessengerSendMessage() {
 
 function handleMessageInput(event) {
     if (event.key === 'Enter') {
-        _legacyMessengerSendMessage();
+        sendMessage();
     }
 }
 
@@ -2135,7 +2146,7 @@ function searchContacts(query) {
     }
     
     container.innerHTML = filtered.map(contact => `
-        <div class="contact-item" onclick="_legacyMessengerStartChat(${contact.id})">
+        <div class="contact-item" onclick="startChat(${contact.id})">
             <img src="${contact.avatar}" alt="${contact.name}">
             <div class="contact-info">
                 <div class="contact-name">${escapeHtml(contact.name)}</div>
@@ -4278,7 +4289,8 @@ function _applyCrop() {
 
     canvas.toBlob(function(blob) {
         if (!blob) { showToast('Crop failed, using original', 'error'); _skipCrop(); return; }
-        const ext  = (_cropFile.name || 'image').split('.').pop() || 'jpg';
+        const mimeToExt = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+        const ext  = mimeToExt[blob.type] || 'jpg';
         const file = new File([blob], `cropped_${Date.now()}.${ext}`, { type: blob.type });
         const dataUrl = canvas.toDataURL();
         const target = _cropTarget;
