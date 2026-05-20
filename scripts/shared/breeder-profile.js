@@ -2027,7 +2027,8 @@ function init() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    init();
+    // Only run swipe init if cardStack exists (i.e. we're on the swipe page)
+    if (document.getElementById('cardStack')) init();
 });
 
 document.getElementById('matchOverlay')?.addEventListener('click', function(e) {
@@ -2035,7 +2036,8 @@ document.getElementById('matchOverlay')?.addEventListener('click', function(e) {
 });
 
 // Expose functions to window
-window.swipe = swipe;
+// swipe is defined in swipe.js — only expose if it's loaded
+if (typeof swipe !== 'undefined') window.swipe = swipe;
 // Export swipe-only functions only if they are defined
 if (typeof toggleFilters !== 'undefined') window.toggleFilters = toggleFilters;
 if (typeof updateBreeds !== 'undefined') window.updateBreeds = updateBreeds;
