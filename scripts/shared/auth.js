@@ -169,7 +169,7 @@ const User = {
             if (data.session) {
                 sessionStorage.setItem('breedlink_token', data.session.access_token);
                 if (data.session.refresh_token) {
-                    sessionStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
+                    sessionStorage.setItem('breedlink_refresh_token', data.session.refresh_token); localStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
                 }
             }
             sessionStorage.setItem('breedlink_user', JSON.stringify(this.current));
@@ -315,7 +315,7 @@ const User = {
             if (data.session) {
                 sessionStorage.setItem('breedlink_token', data.session.access_token);
                 if (data.session.refresh_token) {
-                    sessionStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
+                    sessionStorage.setItem('breedlink_refresh_token', data.session.refresh_token); localStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
                 }
                 // Profile created without OTP — clear pending data
                 sessionStorage.removeItem('breedlink_pending_signup');
@@ -342,7 +342,7 @@ const User = {
         try { await window.supabase.auth.signOut(); } catch(e) {}
         this.current = null;
         sessionStorage.removeItem('breedlink_token');
-        sessionStorage.removeItem('breedlink_refresh_token');
+        sessionStorage.removeItem('breedlink_refresh_token'); localStorage.removeItem('breedlink_refresh_token');
         sessionStorage.removeItem('breedlink_user');
         localStorage.removeItem('breedlink_remember');
         sessionStorage.clear();
@@ -374,7 +374,7 @@ const User = {
             // If token is expired, clear stale session data and treat as logged out
             if ((payload.exp * 1000) < Date.now()) {
                 sessionStorage.removeItem('breedlink_token');
-                sessionStorage.removeItem('breedlink_refresh_token');
+                sessionStorage.removeItem('breedlink_refresh_token'); localStorage.removeItem('breedlink_refresh_token');
                 sessionStorage.removeItem('breedlink_user');
                 return false;
             }
@@ -1269,7 +1269,7 @@ window.AccountSettings = {
         if (reAuthData?.session?.access_token) {
             sessionStorage.setItem('breedlink_token', reAuthData.session.access_token);
             if (reAuthData.session.refresh_token) {
-                sessionStorage.setItem('breedlink_refresh_token', reAuthData.session.refresh_token);
+                sessionStorage.setItem('breedlink_refresh_token', reAuthData.session.refresh_token); localStorage.setItem('breedlink_refresh_token', reAuthData.session.refresh_token);
             }
         }
 
@@ -1291,7 +1291,7 @@ window.AccountSettings = {
         try { await window.supabase.auth.signOut(); } catch(e) {}
         this.current = null;
         sessionStorage.removeItem('breedlink_token');
-        sessionStorage.removeItem('breedlink_refresh_token');
+        sessionStorage.removeItem('breedlink_refresh_token'); localStorage.removeItem('breedlink_refresh_token');
         sessionStorage.removeItem('breedlink_user');
         localStorage.removeItem('breedlink_remember');
         sessionStorage.clear();
