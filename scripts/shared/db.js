@@ -667,8 +667,9 @@ console.log('Config loaded');
                                 headers: {
                                     'apikey': SUPABASE_ANON_KEY,
                                     'Authorization': `Bearer ${token}`,
-                                    'x-upsert': 'true'
-                            },
+                                    'x-upsert': 'true',
+                                    'Content-Type': (file && file.type) ? file.type : 'application/octet-stream'
+                                },
                                 body: file
                             });
                         };
