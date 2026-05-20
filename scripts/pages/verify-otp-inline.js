@@ -1,9 +1,13 @@
 // Extracted inline script from verify-otp.html
 // ── Init ──────────────────────────────────────────────────────────────────
-// Use window vars set by db.js (injected at build time), falling back to
-// template tokens so inject-env.js can still patch them at build time.
-const SUPABASE_URL      = window.SUPABASE_URL || '%%SUPABASE_URL%%';
-const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '%%SUPABASE_ANON_KEY%%';
+// Use window vars set by db.js — do NOT redeclare with const/let/var since
+// db.js already declares them as const in the same scope, causing a
+// SyntaxError that crashes the entire script (including the countdown timer).
+if (typeof window.SUPABASE_URL === 'undefined') window.SUPABASE_URL = '%%SUPABASE_URL%%';
+if (typeof window.SUPABASE_ANON_KEY === 'undefined') window.SUPABASE_ANON_KEY = '%%SUPABASE_ANON_KEY%%';
+// Aliases for use within this script
+const _OTP_URL = window.SUPABASE_URL;
+const _OTP_KEY = window.SUPABASE_ANON_KEY;
 
 // Lightweight direct-fetch wrappers — avoids the Supabase JS SDK firing
 // getSession() on createClient(), which hits /auth/v1/token prematurely
@@ -11,9 +15,9 @@ const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '%%SUPABASE_ANON_KEY%%';
 const sb = {
   auth: {
     async verifyOtp({ email, token, type }) {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+      const res = await fetch(`${_OTP_URL}/auth/v1/verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        headers: { 'Content-Type': 'application/json', 'apikey': _OTP_KEY },
         body: JSON.stringify({ email, token, type, gotrue_meta_security: {} })
       });
       const data = await res.json();
@@ -21,9 +25,9 @@ const sb = {
       return { data: { session: data, user: data.user }, error: null };
     },
     async resend({ type, email }) {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/resend`, {
+      const res = await fetch(`${_OTP_URL}/auth/v1/resend`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        headers: { 'Content-Type': 'application/json', 'apikey': _OTP_KEY },
         body: JSON.stringify({ email, type })
       });
       const data = await res.json();
@@ -160,11 +164,11 @@ async function createProfile(userId, accessToken) {
 
   try {
     // Use Supabase REST API with the fresh access token so RLS allows insert
-    await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+    await fetch(`${_OTP_URL}/rest/v1/profiles`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
+        'apikey': _OTP_KEY,
         'Authorization': `Bearer ${accessToken}`,
         'Prefer': 'resolution=ignore-duplicates'
       },
@@ -243,11 +247,11 @@ window.verifyCode = async function verifyCode() {
 
     // Mark profile as verified — DB trigger handles auto-follow securely
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${data.user.id}`, {
+      await fetch(`${_OTP_URL}/rest/v1/profiles?id=eq.${data.user.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
+          'apikey': _OTP_KEY,
           'Authorization': `Bearer ${access_token}`
         },
         body: JSON.stringify({ is_verified: true })
