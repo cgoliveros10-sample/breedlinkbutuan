@@ -90,7 +90,7 @@
 
     const html = `
 <!-- BreedLink Messages Modal — injected by messages-loader.js -->
-<div class="messages-modal-overlay" id="messagesModalOverlay" style="display:none;"
+<div class="messages-modal-overlay" id="messagesModalOverlay" style="display:none;">
   <div class="messages-modal">
     <button class="messages-modal-close" onclick="closeMessagesModal()" aria-label="Close messages window">×</button>
     <main class="messages-page">
