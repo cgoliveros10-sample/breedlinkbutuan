@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>BREEDLINK — Email Confirmation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-primary:   #2E6B4E;
+      --green-secondary: #3D8C6A;
+      --green-dark:      #1B4332;
+      --green-light:     #E8F3EE;
+      --gold:            #C9A84C;
+      --dark:            #1A1A1A;
+      --red:             #dc2626;
+    }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: linear-gradient(135deg, var(--green-primary), var(--green-dark));
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated background shapes matching login/signup */
+    .bg-shapes { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .shape {
+      position: absolute; border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      animation: floatShape 20s infinite ease-in-out;
+    }
+    .shape:nth-child(1) { width:300px;height:300px;top:-80px;left:-80px;animation-delay:0s; }
+    .shape:nth-child(2) { width:200px;height:200px;top:50%;right:-60px;animation-delay:-5s; }
+    .shape:nth-child(3) { width:150px;height:150px;bottom:-40px;left:30%;animation-delay:-10s; }
+    .shape:nth-child(4) { width:100px;height:100px;top:20%;left:10%;animation-delay:-3s; }
+    .shape:nth-child(5) { width:250px;height:250px;bottom:-80px;right:-40px;animation-delay:-7s; }
+    .shape:nth-child(6) { width:80px;height:80px;top:60%;left:60%;animation-delay:-12s; }
+    @keyframes floatShape {
+      0%,100% { transform: translateY(0) rotate(0deg); }
+      33%     { transform: translateY(-20px) rotate(5deg); }
+      66%     { transform: translateY(10px) rotate(-3deg); }
+    }
+
+    /* Card */
+    .card {
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-radius: 30px;
+      width: min(460px, 100%);
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.45), inset 0 0 80px rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.5);
+      position: relative; z-index: 1;
+      animation: cardIn 0.4s cubic-bezier(0.22,1,0.36,1);
+    }
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(24px) scale(0.97); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    /* Logo header */
+    .card-header {
+      padding: 28px 36px 22px;
+      text-align: center; position: relative;
+      border-bottom: 1px solid rgba(46,107,78,0.1);
+      background: rgba(255,255,255,0.5);
+    }
+    .logo-img { height:52px; object-fit:contain; display:block; margin:0 auto;
+      filter: drop-shadow(0 2px 10px rgba(46,107,78,0.28));
+      animation: logoGlowPulse 2.5s ease-in-out infinite; }
+    @keyframes logoGlowPulse {
+      0%,100% { transform:scale(1); filter:drop-shadow(0 2px 8px rgba(46,107,78,0.25)); }
+      50%      { transform:scale(1.06); filter:drop-shadow(0 2px 18px rgba(46,107,78,0.6)); }
+    }
+    .brand-fallback {
+      display:none; font-size:22px; letter-spacing:5px;
+      background:linear-gradient(135deg,#2E6B4E,#3D8C6A);
+      -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+      font-weight:800;
+    }
+    .brand-sub { display:none; }
+
+    /* Body */
+    .card-body { padding: 36px; text-align: center; }
+
+    .icon-circle {
+      width:80px; height:80px; border-radius:50%;
+      display:inline-flex; align-items:center; justify-content:center;
+      font-size:36px; margin-bottom:16px;
+    }
+    .icon-circle.success { background: var(--green-light); }
+    .icon-circle.error   { background: #fee2e2; }
+    .icon-circle.loading { background: #fef3c7; }
+    .icon-circle.reset   { background: #dbeafe; }
+
+    .card-title {
+      font-size: 21px; color: var(--green-dark);
+      font-weight: 800; margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--green-primary), var(--green-secondary));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .card-desc { font-size:14px; color:#6b7280; line-height:1.65; }
+
+    /* Spinner */
+    .spinner {
+      width:48px; height:48px;
+      border:3px solid #e5e7eb; border-top-color:var(--green-primary);
+      border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Buttons */
+    .btn-primary {
+      display:block; width:100%; padding:17px;
+      background: linear-gradient(135deg, var(--green-primary), var(--green-secondary));
+      color:#fff;
+      border:none; border-radius:16px;
+      font-size:15px; font-weight:600; letter-spacing:0.5px;
+      cursor:pointer; font-family:inherit; margin-top:22px;
+      transition: all 0.3s;
+      box-shadow: 0 10px 30px rgba(46,107,78,0.3);
+      text-decoration:none; text-align:center; line-height:1.5;
+    }
+    .btn-primary:hover:not(:disabled) { transform:translateY(-3px); box-shadow:0 15px 40px rgba(46,107,78,0.4); }
+    .btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
+
+    .btn-secondary {
+      display:block; width:100%; padding:15px;
+      background:transparent; color:var(--green-primary);
+      border:2px solid rgba(46,107,78,0.35); border-radius:16px;
+      font-size:14px; font-weight:500; cursor:pointer; font-family:inherit;
+      margin-top:10px; transition:all 0.2s; text-decoration:none; text-align:center;
+    }
+    .btn-secondary:hover { background:var(--green-light); border-color:var(--green-primary); }
+
+    /* Form */
+    .form-group { text-align:left; margin-top:16px; }
+    .form-label {
+      display:block; font-size:11px; font-weight:600; color:var(--green-primary);
+      text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;
+    }
+    .form-input {
+      width:100%; padding:16px 20px; border:2px solid #dde8df; border-radius:16px;
+      font-size:15px; outline:none; font-family:inherit; color:var(--dark);
+      transition: all 0.3s; background: rgba(248,253,249,0.8);
+    }
+    .form-input:focus { border-color:var(--green-primary); box-shadow:0 0 0 4px rgba(46,107,78,0.1); transform:translateY(-2px); }
+    .form-input.error { border-color:var(--red); }
+
+    .pw-wrap { position:relative; }
+    .pw-wrap .form-input { padding-right:48px; }
+    .pw-toggle {
+      position:absolute; right:14px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer; font-size:18px; padding:0; line-height:1;
+    }
+
+    .strength-bar { display:flex; gap:4px; margin-top:8px; }
+    .strength-seg { height:4px; flex:1; border-radius:2px; background:#e5e7eb; transition:background 0.3s; }
+    .strength-seg.weak   { background:#ef4444; }
+    .strength-seg.medium { background:#f59e0b; }
+    .strength-seg.strong { background:#22c55e; }
+    .strength-label { font-size:11px; color:#9ca3af; margin-top:4px; text-align:left; }
+
+    .field-error { font-size:12px; color:var(--red); margin-top:4px; display:none; text-align:left; }
+    .field-error.visible { display:block; }
+
+    /* Panels */
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* Footer */
+    .card-footer {
+      padding: 16px 36px;
+      text-align: center;
+      border-top: 1px solid rgba(46,107,78,0.1);
+      background: rgba(255,255,255,0.3);
+    }
+    .footer-brand {
+      font-size:13px; letter-spacing:2px; font-weight:700;
+      background: linear-gradient(135deg, var(--green-primary), var(--green-secondary));
+      -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .footer-sub { font-size:10px; color:#9ca3af; margin-top:2px; letter-spacing:0.5px; }
+
+    /* Toast */
+    .toast {
+      position:fixed; bottom:24px; right:24px;
+      padding:14px 20px; border-radius:14px;
+      font-size:14px; font-weight:500; color:#fff;
+      z-index:9999; animation:toastIn 0.3s ease;
+      max-width:320px; box-shadow:0 8px 24px rgba(0,0,0,0.2);
+    }
+    .toast.success { background:var(--green-primary); }
+    .toast.error   { background:#991b1b; }
+    @keyframes toastIn {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-shapes">
+  <div class="shape"></div><div class="shape"></div><div class="shape"></div>
+  <div class="shape"></div><div class="shape"></div><div class="shape"></div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <img class="logo-img"
+      src="../assets/logo.png"
+      alt="BreedLink"
+      onerror="this.style.display='none'; document.getElementById('brandFallback').style.display='block';">
+    <div class="brand-fallback" id="brandFallback">BREEDLINK</div>
+    <div class="brand-sub">Premium Breeding Registry</div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- LOADING -->
+    <div class="panel active" id="panelLoading">
+      <div class="spinner"></div>
+      <div class="card-title">Verifying your link…</div>
+      <div class="card-desc">Please wait a moment while we confirm your request.</div>
+    </div>
+
+    <!-- EMAIL VERIFIED -->
+    <div class="panel" id="panelVerified">
+      <div class="icon-circle success">✓</div>
+      <div class="card-title">Email Verified!</div>
+      <div class="card-desc">Your BREEDLINK account is confirmed.<br>You're all set to start connecting with breeders.</div>
+      <div id="verifiedCountdown" style="margin-top:14px; font-size:13px; color:#9ca3af;">Redirecting to your profile in <strong id="verifiedSecs">3</strong>s…</div>
+      <a href="profile.html" class="btn-primary" style="margin-top:12px;">Go to Your Profile →</a>
+    </div>
+
+    <!-- RESET PASSWORD -->
+    <div class="panel" id="panelReset">
+      <div class="icon-circle reset">🔐</div>
+      <div class="card-title">Choose a New Password</div>
+      <div class="card-desc">Enter and confirm your new BREEDLINK password below.</div>
+
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <div class="pw-wrap">
+          <input type="password" class="form-input" id="newPw" placeholder="Min 8 characters" oninput="onPwInput()">
+          <button class="pw-toggle" type="button" onclick="togglePw('newPw',this)">👁️</button>
+        </div>
+        <div class="strength-bar">
+          <div class="strength-seg" id="seg1"></div>
+          <div class="strength-seg" id="seg2"></div>
+          <div class="strength-seg" id="seg3"></div>
+        </div>
+        <div class="strength-label" id="strengthLabel">Enter a password</div>
+        <div class="field-error" id="newPwError">Password must be at least 8 characters.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <div class="pw-wrap">
+          <input type="password" class="form-input" id="confirmPw" placeholder="Repeat password">
+          <button class="pw-toggle" type="button" onclick="togglePw('confirmPw',this)">👁️</button>
+        </div>
+        <div class="field-error" id="confirmPwError">Passwords do not match.</div>
+      </div>
+
+      <button class="btn-primary" id="resetBtn" onclick="doResetPassword()" style="margin-top:24px;">
+        Set New Password
+      </button>
+    </div>
+
+    <!-- EMAIL CHANGE CONFIRMED -->
+    <div class="panel" id="panelRecovered">
+      <div class="icon-circle success">✓</div>
+      <div class="card-title">Email Updated!</div>
+      <div class="card-desc">Your BREEDLINK sign-in email has been successfully changed to your new address. Please sign in with your new email.</div>
+      <div id="recoveredCountdown" style="margin-top:14px; font-size:13px; color:#9ca3af;">Redirecting to login in <strong id="recoveredSecs">3</strong>s…</div>
+      <a href="login.html" class="btn-primary" style="margin-top:12px;">Sign In to BREEDLINK →</a>
+    </div>
+
+    <!-- ERROR -->
+    <div class="panel" id="panelError">
+      <div class="icon-circle error">✕</div>
+      <div class="card-title" id="errTitle">Something went wrong</div>
+      <div class="card-desc" id="errDesc">This link may have expired or already been used. Please request a new one.</div>
+      <a href="signup.html" class="btn-primary">Try Signing Up Again</a>
+      <a href="login.html" class="btn-secondary">Back to Login</a>
+    </div>
+
+  </div>
+
+  <div class="card-footer">
+    <div class="footer-brand">BREEDLINK</div>
+    <div class="footer-sub">Premium Breeding Registry</div>
+  </div>
+</div>
+
+<!-- Supabase CDN — same library version the rest of the site uses -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+
+
+<script src="../scripts/pages/email-action-inline.js"></script>
+</body>
+</html>
