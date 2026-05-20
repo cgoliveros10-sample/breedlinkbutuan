@@ -278,6 +278,7 @@ function updateContactDOM() {
 }
 
 async function loadPosts() {
+    if (!currentUserId) return;
     try {
         const { data, error } = await window.supabase
             .from('posts')
@@ -331,6 +332,7 @@ async function loadPosts() {
 }
 
 async function loadAnimals() {
+    if (!currentUserId) return;
     try {
         const { data, error } = await window.supabase
             .from('animals')
@@ -2219,6 +2221,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     await loadProfile();
+
+    // If loadProfile couldn't resolve the user (e.g. token refresh race on first load),
+    // wait briefly and retry once before giving up.
+    if (!currentUserId) {
+        await new Promise(r => setTimeout(r, 800));
+        await loadProfile();
+    }
+
     await loadPosts();
     await loadAnimals();
     loadFollowCounts();
