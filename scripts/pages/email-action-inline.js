@@ -97,11 +97,12 @@ async function fetchAndStoreUser(accessToken) {
 
     const profile  = profiles[0] || {};
 
+    const _name = profile.name || authUser.user_metadata?.name || 'User';
     const user = {
       id:          userId,
-      name:        profile.name        || authUser.user_metadata?.name || 'User',
+      name:        _name,
       email:       profile.contact?.email || authUser.email || '',
-      avatar:      profile.profile_picture || defaultAvatar(user.name || 'User'),
+      avatar:      profile.profile_picture || defaultAvatar(_name),
       coverPhoto:  profile.cover_photo || 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=1200',
       bio:         profile.bio         || '',
       tags:        profile.tags        || [],
@@ -145,7 +146,10 @@ async function handleAction() {
 
       // Persist tokens so auth.js sees the session
       sessionStorage.setItem('breedlink_token', accessToken);
-      if (refreshToken) sessionStorage.setItem('breedlink_refresh_token', refreshToken);
+      if (refreshToken) {
+        sessionStorage.setItem('breedlink_refresh_token', refreshToken);
+        localStorage.setItem('breedlink_refresh_token', refreshToken);
+      }
 
       if (type === 'recovery') {
         showPanel('panelReset');
@@ -179,6 +183,7 @@ async function handleAction() {
         sessionStorage.setItem('breedlink_token', data.session.access_token);
         if (data.session.refresh_token) {
           sessionStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
+          localStorage.setItem('breedlink_refresh_token', data.session.refresh_token);
         }
         if (type !== 'recovery' && type !== 'email_change') {
           await fetchAndStoreUser(data.session.access_token);
