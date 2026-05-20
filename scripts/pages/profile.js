@@ -574,9 +574,15 @@ async function addPost() {
             // Upload all images
             const imageUrls = [];
             for (const item of pendingPostImages) {
-                const blob = await (await fetch(item.dataUrl)).blob();
-                const ext = item.file?.name?.split('.').pop() || 'jpg';
-                const file = new File([blob], `post-image-${Date.now()}.${ext}`, { type: item.file?.type || 'image/jpeg' });
+                // Use the original File object directly — avoids fetch(dataUrl) failures
+                // and preserves correct MIME type for the upload validator.
+                let file = item.file;
+                if (!file) {
+                    // Fallback: reconstruct from dataUrl only if file ref is missing
+                    const blob = await (await fetch(item.dataUrl)).blob();
+                    const ext = (item.dataUrl.split(';')[0].split('/')[1]) || 'jpg';
+                    file = new File([blob], `post-image-${Date.now()}.${ext}`, { type: blob.type || 'image/jpeg' });
+                }
                 const url = await StorageAPI.uploadPostImage(file);
                 if (url) imageUrls.push(url);
             }
@@ -4281,6 +4287,15 @@ function _initCropModal(dataUrl, ratio) {
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
+    // Suppress backdrop-filter on all open .modal elements so they don't
+    // create a stacking context that traps the crop modal (z-index escape fix)
+    document.querySelectorAll('.modal').forEach(function(m) {
+        m._savedBackdropFilter = m.style.backdropFilter || '';
+        m._savedWebkitBackdropFilter = m.style.webkitBackdropFilter || '';
+        m.style.backdropFilter = 'none';
+        m.style.webkitBackdropFilter = 'none';
+    });
+
     srcImg.src = dataUrl;
 
     // Set active ratio pill
@@ -4589,6 +4604,16 @@ function _closeCropModal() {
     document.body.style.overflow = '';
     const cropBox = document.getElementById('cropBox');
     if (cropBox && cropBox._removeCropListeners) cropBox._removeCropListeners();
+
+    // Restore backdrop-filter on all .modal elements
+    document.querySelectorAll('.modal').forEach(function(m) {
+        if (m._savedBackdropFilter !== undefined) {
+            m.style.backdropFilter = m._savedBackdropFilter;
+            m.style.webkitBackdropFilter = m._savedWebkitBackdropFilter;
+            delete m._savedBackdropFilter;
+            delete m._savedWebkitBackdropFilter;
+        }
+    });
 }
 
 // Wire up ratio pills
