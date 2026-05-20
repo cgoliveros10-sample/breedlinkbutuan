@@ -1290,26 +1290,48 @@ function _bpClick(e) {
             const newShares = (post.shares || 0) + 1;
             post.shares = newShares;
             window.supabase.from('posts').update({ shares: newShares }).eq('id', pid).catch(err => console.warn('share counter error:', err));
-            const cntEl = document.querySelector(`[data-share-count="${pid}"]`);
-            if (cntEl) cntEl.textContent = newShares;
+            const cntEls = document.querySelectorAll(`[data-share-count="${pid}"]`);
+            cntEls.forEach(c => { c.textContent = newShares; });
         }
 
-        // Scroll to the post inside the panel and highlight it
+        // Scroll to post in panel and flash it
         _bpScrollToPost(pid);
 
-        // Share or copy the shareable link
+        // Clipboard copy helper that works even without HTTPS focus
+        function _copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text).catch(() => _fallbackCopy(text));
+            }
+            return Promise.resolve(_fallbackCopy(text));
+        }
+        function _fallbackCopy(text) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+                document.body.appendChild(ta);
+                ta.focus(); ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            } catch(_) {}
+        }
+
+        // Try Web Share API first (mobile), fall back to clipboard copy
         if (navigator.share) {
             navigator.share({
                 title: 'BreedLink Post',
                 text: post?.text ? post.text.slice(0, 100) : 'Check out this post on BreedLink',
                 url: shareUrl
+            }).then(() => {
+                showToast('Post shared! \uD83D\uDD17');
             }).catch(() => {
-                navigator.clipboard.writeText(shareUrl).then(() => showToast('Scrolled to post \u2022 Link copied \uD83D\uDD17'));
+                // Web Share cancelled or failed — copy link instead
+                _copyToClipboard(shareUrl);
+                showToast('Link copied! \uD83D\uDD17');
             });
         } else {
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                showToast('Scrolled to post \u2022 Link copied \uD83D\uDD17');
-            }).catch(() => showToast('Post link: ' + shareUrl));
+            _copyToClipboard(shareUrl);
+            showToast('Post link copied! \uD83D\uDD17');
         }
         return;
     }
