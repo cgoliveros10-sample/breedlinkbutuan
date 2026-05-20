@@ -4278,7 +4278,8 @@ function _applyCrop() {
 
     canvas.toBlob(function(blob) {
         if (!blob) { showToast('Crop failed, using original', 'error'); _skipCrop(); return; }
-        const ext  = (_cropFile.name || 'image').split('.').pop() || 'jpg';
+        const mimeToExt = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+        const ext  = mimeToExt[blob.type] || 'jpg';
         const file = new File([blob], `cropped_${Date.now()}.${ext}`, { type: blob.type });
         const dataUrl = canvas.toDataURL();
         const target = _cropTarget;
