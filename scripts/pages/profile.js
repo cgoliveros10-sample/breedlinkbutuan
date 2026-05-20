@@ -1720,17 +1720,17 @@ async function renderMyReviews() {
 
         const avg = (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1);
         const starsFull = Math.round(parseFloat(avg));
-        const starsHTML = [1,2,3,4,5].map(i => `<span style="color:${i<=starsFull?'#f59e0b':'#d1d5db'};font-size:18px;">★</span>`).join('');
+        const starsHTML = [1,2,3,4,5].map(i => `<span style="color:${i<=starsFull?'#f59e0b':'#d1d5db'};font-size:clamp(14px,4vw,18px);">★</span>`).join('');
 
         if (header) {
             header.innerHTML = `
-            <div style="display:flex;align-items:center;gap:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:14px 16px;margin-bottom:4px;">
-              <div style="text-align:center;flex-shrink:0;">
-                <div style="font-size:40px;font-weight:900;color:#92400e;line-height:1;">${avg}</div>
-                <div style="display:flex;gap:1px;justify-content:center;margin:4px 0;">${starsHTML}</div>
-                <div style="font-size:11px;color:#b45309;font-weight:600;">${ratings.length} review${ratings.length!==1?'s':''}</div>
+            <div style="display:flex;align-items:center;gap:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:10px 12px;margin-bottom:4px;flex-wrap:wrap;">
+              <div style="text-align:center;flex-shrink:0;min-width:54px;">
+                <div style="font-size:clamp(28px,9vw,40px);font-weight:900;color:#92400e;line-height:1;">${avg}</div>
+                <div style="display:flex;gap:1px;justify-content:center;margin:3px 0;">${starsHTML}</div>
+                <div style="font-size:clamp(10px,2.5vw,11px);color:#b45309;font-weight:600;">${ratings.length} review${ratings.length!==1?'s':''}</div>
               </div>
-              <div style="flex:1;font-size:13px;color:#92400e;">Your average rating from breeders you've connected with.</div>
+              <div style="flex:1;min-width:100px;font-size:clamp(11px,3vw,13px);color:#92400e;line-height:1.4;">Your average rating from breeders you've connected with.</div>
             </div>`;
         }
 
@@ -2741,11 +2741,13 @@ async function _legacyOpenBreederProfile(userId) {
                 let gridHtml = '';
                 if (count > 0) {
                     const cols = count === 1 ? '1fr' : count === 2 ? '1fr 1fr' : 'repeat(2,1fr)';
+                    // Use clamp for responsive image heights: min 100px, preferred 28vw, max 160px
+                    const multiH = 'clamp(100px,28vw,160px)';
                     gridHtml = `<div style="display:grid;grid-template-columns:${cols};gap:3px;border-radius:10px;overflow:hidden;margin-bottom:8px;cursor:pointer;" onclick="openBPPostDetail('${userId}','${p.id}',${JSON.stringify(imgs).replace(/"/g,'&quot;')})">
                         ${imgs.slice(0,4).map((img,i) => {
                             const overlay = count > 4 && i === 3 ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:20px;font-weight:800;">+${count-4}</div>` : '';
                             return `<div style="position:relative;overflow:hidden;background:#000;${count===3&&i===0?'grid-row:span 2;':''}">
-                                <img src="${escapeHtml(img)}" style="width:100%;height:${count===1?'auto':'160px'};max-height:${count===1?'280px':'180px'};object-fit:${count===1?'contain':'cover'};display:block;" onerror="this.parentElement.style.display='none'">${overlay}</div>`;
+                                <img src="${escapeHtml(img)}" style="width:100%;height:${count===1?'auto':multiH};max-height:${count===1?'min(280px,70vw)':'min(180px,30vw)'};object-fit:${count===1?'contain':'cover'};display:block;" onerror="this.parentElement.style.display='none'">${overlay}</div>`;
                         }).join('')}
                     </div>`;
                 }
@@ -2848,13 +2850,13 @@ async function _legacyOpenBreederProfile(userId) {
 
                 <!-- Rating banner -->
                 ${avgRating ? `
-                <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;cursor:pointer;" onclick="document.getElementById('bpTab_reviews_${userId}').click()">
-                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                        <span style="color:#f59e0b;font-size:16px;white-space:nowrap;">${[1,2,3,4,5].map(i=>`<span style="color:${i<=Math.round(parseFloat(avgRating))?'#f59e0b':'#d1d5db'};">★</span>`).join('')}</span>
-                        <span style="font-size:16px;font-weight:800;color:#92400e;white-space:nowrap;">${avgRating}</span>
-                        <span style="font-size:12px;color:#b45309;white-space:nowrap;">(${ratings.length} review${ratings.length!==1?'s':''})</span>
+                <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;cursor:pointer;min-width:0;" onclick="document.getElementById('bpTab_reviews_${userId}').click()">
+                    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0;flex:1;">
+                        <span style="color:#f59e0b;font-size:clamp(13px,4vw,16px);white-space:nowrap;line-height:1;">${[1,2,3,4,5].map(i=>`<span style="color:${i<=Math.round(parseFloat(avgRating))?'#f59e0b':'#d1d5db'};">★</span>`).join('')}</span>
+                        <span style="font-size:clamp(13px,4vw,16px);font-weight:800;color:#92400e;white-space:nowrap;">${avgRating}</span>
+                        <span style="font-size:clamp(11px,3vw,12px);color:#b45309;white-space:nowrap;">(${ratings.length} review${ratings.length!==1?'s':''})</span>
                     </div>
-                    <span style="font-size:12px;color:#b45309;font-weight:600;white-space:nowrap;">tap to view →</span>
+                    <span style="font-size:clamp(11px,3vw,12px);color:#b45309;font-weight:600;white-space:nowrap;flex-shrink:0;">tap to view →</span>
                 </div>` : ''}
 
                 <!-- Bio -->
