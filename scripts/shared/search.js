@@ -156,25 +156,25 @@
     if (!window.supabase || !q || q.length < 2) return [];
     if (typeof User === 'undefined' || !User.isAuthenticated()) return [];
     try {
-      // db.js buildUrl appends orFilter RAW into the URL: &or=(...)
-      // So we must pre-encode % as %25 ourselves — buildUrl won't do it.
-      // Also escape PostgREST special chars inside the or() string: ( ) ,
-      var safe = encodeURIComponent(q)          // encode the query itself
-                  .replace(/[(),'*]/g, '\\$&'); // escape PostgREST specials
-
-      // Pattern: %query% for PostgREST ilike wildcard matching
-      var pattern = '%' + safe + '%';
-      var orFilter = 'name.ilike.' + pattern + ',username.ilike.' + pattern;
+      // Pass the ilike pattern directly — Supabase JS client handles URL encoding.
+      var pattern = '%' + q + '%';
 
       var { data, error } = await window.supabase
         .from('profiles')
         .select('id, name, username, profile_picture, location, tags, is_deleted, deletion_requested_at')
-        .or(orFilter)
+        .or('name.ilike.' + pattern + ',username.ilike.' + pattern)
         .limit(8);
 
       if (error) {
-        console.warn('[BL Search] OR query failed:', error.message);
-        return [];
+        // Fallback: OR filter failed (e.g. RLS or column issue) — try name-only ilike
+        console.warn('[BL Search] OR query failed, falling back to name-only:', error.message);
+        var res2 = await window.supabase
+          .from('profiles')
+          .select('id, name, username, profile_picture, location, tags, is_deleted, deletion_requested_at')
+          .ilike('name', pattern)
+          .limit(8);
+        if (res2.error) { console.warn('[BL Search] fallback query failed:', res2.error.message); return []; }
+        data = res2.data;
       }
 
       // Filter out deleted/pending-deletion profiles client-side
