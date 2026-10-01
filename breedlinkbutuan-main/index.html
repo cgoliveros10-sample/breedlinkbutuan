@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>BreedLink - Modern Breeder Hub</title>
+  <meta name="description" content="BreedLink helps pet owners and breeders in Butuan City find a suitable breeding partner, view health documents, and connect directly.">
+  <meta name="keywords" content="pet breeding, breeders Philippines, dog breeders, cat breeders, pet matching, Butuan City">
+  <meta property="og:title" content="BreedLink - Modern Breeder Hub">
+  <meta property="og:description" content="Find a suitable breeding partner for your pet in Butuan City and connect with breeders directly.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/logo.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="BreedLink - Modern Breeder Hub">
+  <meta name="twitter:description" content="Find a suitable breeding partner for your pet in Butuan City.">
+  <link rel="stylesheet" href="styles/shared/base.css">
+  <link rel="stylesheet" href="styles/pages/home.css">
+</head>
+<body>
+  <div class="page-loader" id="pageLoader">
+    <div class="loader"></div>
+  </div>
+  <div class="bg-animation"></div>
+  <header class="navigation" id="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo" onclick="window.location.href='index.html'">
+          <img src="assets/logo.png" alt="BreedLink">
+        </div>
+      </div>
+      <div class="nav-center">
+        <nav class="menu" id="navMenu">
+          <a href="index.html" id="nav-home">Home</a>
+          <a href="pages/about.html" id="nav-about">About</a>
+          <a href="pages/swipe.html" id="nav-breeders">Breeders</a>
+        </nav>
+        <!-- Mobile-only auth links shown in hamburger overlay -->
+        <div class="mobile-nav-auth" id="mobileNavAuth" style="display:none;">
+          <a href="pages/login.html" class="mobile-signin" id="mobileSignin">Sign In</a>
+          <a href="pages/signup.html" class="mobile-signup" id="mobileSignup">Sign Up</a>
+        </div>
+      </div>
+      <div class="nav-right" id="navRight">
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="Toggle menu" style="display:none;">
+          <span></span><span></span><span></span>
+        </button>
+        <button class="message-btn" id="messageBtn" onclick="openMessenger()" title="Messages" style="display: none;">
+          <svg class="bl-icon" xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-0.15em;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          <span class="message-badge" id="messageBadge" style="display: none;">0</span>
+        </button>
+        <div class="profile-menu-container" id="profileMenuContainer" style="display: none;">
+          <button class="profile-btn" id="profileBtn" onclick="toggleProfileDropdown()">
+            <span class="default-avatar"><svg class="bl-icon" xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-0.15em;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          </button>
+          <div class="profile-dropdown" id="profileDropdown">
+            <a href="pages/profile.html" class="profile-dropdown-item">View Profile</a>
+            <a href="pages/profile.html?edit=true" class="profile-dropdown-item" onclick="sessionStorage.setItem('enableEdit', 'true');">Customize Profile</a>
+            <button class="profile-dropdown-item" onclick="openSettingsPanel(); toggleProfileDropdown();">Account Settings</button>
+            <div class="profile-dropdown-divider"></div>
+            <button class="profile-dropdown-item logout" onclick="handleLogout()">Logout</button>
+          </div>
+        </div>
+        <div class="guest-options" id="guestOptions">
+          <a href="pages/login.html" class="guest-btn signin">Sign In</a>
+          <a href="pages/signup.html" class="guest-btn signup">Sign Up</a>
+        </div>
+      </div>
+    </div>
+  </header>
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="hero-text">
+        <div class="hero-badge">Now Live in Butuan</div>
+        <h1>The Future of Animal Breeding</h1>
+        <p>Find a suitable breeding partner for your pet, check their health documents, and connect with breeders in Butuan City.</p>
+        <div class="hero-buttons">
+          <a href="pages/login.html" class="btn btn-primary" id="getStartedBtn">Get Started →</a>
+          <a href="pages/about.html" class="btn btn-secondary">Learn More</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-image-container">
+          <!-- CHANGED: livestock photo (goat) replaced with a pet photo -->
+          <img src="assets/animals/labrador.png" alt="Pet breeding">
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="features-section">
+    <div class="section-header reveal">
+      <h2>Why Choose BreedLink?</h2>
+      <p>Everything you need to manage your breeding program in one powerful platform</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <h3>Transparency</h3>
+        <p>Breeder profiles, ratings, and reviews help you know who you are dealing with before you reach out.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h3>Swipe Matching</h3>
+        <p>Swipe through pets and filter by type, breed, and location to find a suitable match.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h3>Direct Messaging</h3>
+        <p>Connect directly with breeders, veterinarians, and experts through our secure messaging platform.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h3>Sustainability</h3>
+        <p>Promoting responsible breeding practices for healthier animals.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h3>Health Records</h3>
+        <p>Owners can upload vaccination and health documents for each pet so others can review them.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h3>Accessibility</h3>
+        <p>Free to use and designed to work on both phones and computers.</p>
+      </div>
+    </div>
+  </section>
+   <section class="stats-section">
+    <div class="stats-container" style="min-height: 80px;"></div>
+   </section>
+  <section class="cta-section">
+    <div class="cta-container reveal">
+      <div class="cta-content">
+        <h2>Join Our Community</h2>
+        <p>Whether you're a seasoned breeder or just starting out, BreedLink has the tools and community to support your journey.</p>
+        <a href="pages/signup.html" class="btn btn-primary" id="ctaCreateAccount">Create Free Account →</a>
+      </div>
+    </div>
+  </section>
+  <footer class="footer">
+    <div class="footer-content">
+      <h3>THE HUB FOR PET BREEDERS IN BUTUAN CITY</h3>
+      <p>Butuan City, Agusan del Norte, Philippines 8600<br>
+      <a href="mailto:community@breedlink.com">community@breedlink.com</a></p>
+      <div style="margin-top:12px;font-size:13px;opacity:0.75;">
+        <a href="pages/terms.html" style="color:inherit;margin-right:16px;">Terms of Service</a>
+        <a href="pages/privacy.html" style="color:inherit;">Privacy Policy</a>
+      </div>
+    </div>
+  </footer>
+<script src="scripts/shared/db.js"></script>
+
+<script src="scripts/shared/core.js"></script>
+<script src="scripts/shared/search.js"></script>
+<script src="scripts/shared/auth.js"></script>
+<script src="scripts/shared/upload.js"></script>
+<script src="scripts/pages/home.js"></script>
+
+<script src="scripts/shared/msgs-loader.js"></script>
+<script src="scripts/shared/settings.js"></script>
+
+<!-- toggleMobileMenu is provided by core.js (drawer-based) -->
+</body>
+</html>
