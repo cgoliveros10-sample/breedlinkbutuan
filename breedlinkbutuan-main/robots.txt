@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /pages/login.html
+Disallow: /pages/signup.html
+Disallow: /pages/verify-otp.html
+Disallow: /pages/email-action.html
+Disallow: /pages/messages.html
+Disallow: /pages/profile.html
+
+Sitemap: https://breedlink.vercel.app/
